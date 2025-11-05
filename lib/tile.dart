@@ -62,9 +62,9 @@ class TileWidget extends StatelessWidget {
   final double containerSize;
   final double size;
   final Color color;
-  final Widget child;
+  final Widget? child;
 
-  const TileWidget({Key key, this.x, this.y, this.containerSize, this.size, this.color, this.child}) : super(key: key);
+  const TileWidget({Key? key, required this.x, required this.y, required this.containerSize, required this.size, required this.color, this.child}) : super(key: key);
 
   @override
   Widget build(BuildContext context) => Positioned(
@@ -84,7 +84,7 @@ class TileWidget extends StatelessWidget {
 class TileNumber extends StatelessWidget {
   final int val;
 
-  const TileNumber(this.val, {Key key}) : super(key: key);
+  const TileNumber(this.val, {Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) => Text("$val",
@@ -94,18 +94,20 @@ class TileNumber extends StatelessWidget {
 class BigButton extends StatelessWidget {
   final String label;
   final Color color;
-  final void Function() onPressed;
+  final void Function()? onPressed;
 
-  const BigButton({Key key, this.label, this.color, this.onPressed}) : super(key: key);
+  const BigButton({Key? key, required this.label, required this.color, this.onPressed}) : super(key: key);
 
   @override
   Widget build(BuildContext context) => Container(
       height: 80,
       width: 400,
-      child: RaisedButton(
-        color: color,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(cornerRadius),
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: color,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(cornerRadius),
+          ),
         ),
         child: Text(label, style: TextStyle(color: Colors.white, fontSize: 34, fontWeight: FontWeight.w700)),
         onPressed: onPressed,
@@ -119,7 +121,7 @@ class Swiper extends StatelessWidget {
   final Function() right;
   final Widget child;
 
-  const Swiper({Key key, this.up, this.down, this.left, this.right, this.child}) : super(key: key);
+  const Swiper({Key? key, required this.up, required this.down, required this.left, required this.right, required this.child}) : super(key: key);
 
   @override
   Widget build(BuildContext context) => GestureDetector(

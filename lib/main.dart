@@ -34,7 +34,7 @@ class TwentyFortyEight extends StatefulWidget {
 }
 
 class TwentyFortyEightState extends State<TwentyFortyEight> with SingleTickerProviderStateMixin {
-  AnimationController controller;
+  late AnimationController controller;
 
   List<List<Tile>> grid = List.generate(4, (y) => List.generate(4, (x) => Tile(x, y, 0)));
   List<GameState> gameStates = [];
@@ -44,7 +44,7 @@ class TwentyFortyEightState extends State<TwentyFortyEight> with SingleTickerPro
   Iterable<Tile> get allTiles => [gridTiles, toAdd].expand((e) => e);
   List<List<Tile>> get gridCols => List.generate(4, (x) => List.generate(4, (y) => grid[y][x]));
 
-  Timer aiTimer;
+  Timer? aiTimer;
 
   @override
   void initState() {
@@ -180,7 +180,12 @@ class TwentyFortyEightState extends State<TwentyFortyEight> with SingleTickerPro
     for (int i = 0; i < tiles.length; i++) {
       for (int j = i; j < tiles.length; j++) {
         if (tiles[j].value != 0) {
-          Tile mergeTile = tiles.skip(j + 1).firstWhere((t) => t.value != 0, orElse: () => null);
+          Tile? mergeTile;
+          try {
+            mergeTile = tiles.skip(j + 1).firstWhere((t) => t.value != 0);
+          } catch (e) {
+            mergeTile = null;
+          }
           if (mergeTile != null && mergeTile.value != tiles[j].value) {
             mergeTile = null;
           }
