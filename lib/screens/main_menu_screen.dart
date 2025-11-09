@@ -7,6 +7,8 @@ import 'package:f2048/screens/daily_challenge_screen.dart';
 import 'package:f2048/screens/settings_screen.dart';
 import 'package:f2048/screens/game_mode_screen.dart';
 import 'package:f2048/screens/theme_selection_screen.dart';
+import 'package:f2048/screens/user_profile_screen.dart';
+import 'package:f2048/screens/leaderboard_screen.dart';
 
 class MainMenuScreen extends StatelessWidget {
   const MainMenuScreen({Key? key}) : super(key: key);
@@ -108,6 +110,34 @@ class MainMenuScreen extends StatelessWidget {
                 context,
                 CupertinoPageRoute(
                   builder: (context) => const AchievementsScreen(),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            _buildMenuCard(
+              context,
+              'Profile',
+              'View your player profile',
+              CupertinoIcons.person_crop_circle_fill,
+              IOSColors.systemIndigo,
+              () => Navigator.push(
+                context,
+                CupertinoPageRoute(
+                  builder: (context) => const UserProfileScreen(),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            _buildMenuCard(
+              context,
+              'Leaderboards',
+              'Compete with yourself',
+              CupertinoIcons.chart_bar_circle_fill,
+              IOSColors.systemTeal,
+              () => Navigator.push(
+                context,
+                CupertinoPageRoute(
+                  builder: (context) => const LeaderboardScreen(),
                 ),
               ),
             ),

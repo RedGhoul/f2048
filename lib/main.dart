@@ -15,6 +15,9 @@ import 'package:f2048/services/haptic_service.dart';
 import 'package:f2048/services/game_mode_service.dart';
 import 'package:f2048/services/theme_service.dart';
 import 'package:f2048/services/power_up_service.dart';
+import 'package:f2048/services/share_service.dart';
+import 'package:f2048/services/user_profile_service.dart';
+import 'package:f2048/services/leaderboard_service.dart';
 import 'package:f2048/models/game_statistics.dart';
 import 'package:f2048/models/achievement.dart';
 import 'package:f2048/models/game_mode.dart';
@@ -181,6 +184,8 @@ class TwentyFortyEightState extends State<TwentyFortyEight> with SingleTickerPro
     await GameModeService.instance.initialize();
     await ThemeService.instance.initialize();
     await PowerUpService.instance.loadInventory();
+    await UserProfileService.instance.loadProfile();
+    await LeaderboardService.instance.loadEntries();
 
     // Set up achievement unlock listener
     AchievementService.instance.addUnlockListener(_onAchievementUnlocked);
@@ -297,8 +302,27 @@ class TwentyFortyEightState extends State<TwentyFortyEight> with SingleTickerPro
     await StatisticsService.instance.recordGame(gameRecord);
     await GameModeService.instance.recordGame(score, gameStates.length, bestTile, won);
 
-    // Check achievements
+    // Update user profile with game stats
     final stats = StatisticsService.instance.statistics;
+    await UserProfileService.instance.updateFromGameStats(
+      totalGamesPlayed: stats.totalGamesPlayed,
+      totalWins: stats.totalWins,
+      highScore: stats.highScore,
+      bestTile: stats.bestTile,
+      scoreThisGame: score,
+    );
+
+    // Add entry to leaderboard
+    final profile = UserProfileService.instance.profile;
+    await LeaderboardService.instance.addEntry(
+      score: score,
+      bestTile: bestTile,
+      moves: gameStates.length,
+      displayName: profile.displayName,
+      gameMode: GameModeService.instance.currentMode,
+    );
+
+    // Check achievements
     final unlockedAchievements = await AchievementService.instance.checkAchievements(stats, gameRecord);
 
     // Play sound and haptic
@@ -323,6 +347,8 @@ class TwentyFortyEightState extends State<TwentyFortyEight> with SingleTickerPro
   }
 
   void _showGameOverDialog(bool won, GameRecord record, List<Achievement> newAchievements) {
+    final config = GameModeService.instance.currentConfig;
+
     showCupertinoDialog(
       context: context,
       barrierDismissible: false,
@@ -350,6 +376,20 @@ class TwentyFortyEightState extends State<TwentyFortyEight> with SingleTickerPro
         ),
         actions: [
           CupertinoDialogAction(
+            onPressed: () async {
+              await ShareService.instance.shareGameResult(
+                score: record.score,
+                bestTile: record.bestTile,
+                moves: record.moves,
+                won: won,
+                gameMode: GameModeService.instance.currentMode,
+                timeTaken: config.hasTimer ? record.playTimeSeconds : null,
+              );
+            },
+            child: const Text('Share'),
+          ),
+          CupertinoDialogAction(
+            isDefaultAction: true,
             onPressed: () {
               Navigator.pop(context);
               setupNewGame();
