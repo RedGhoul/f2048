@@ -8,6 +8,13 @@ import 'package:f2048/tile.dart';
 import 'package:f2048/ios_theme.dart';
 import 'package:f2048/onboarding_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:f2048/services/statistics_service.dart';
+import 'package:f2048/services/achievement_service.dart';
+import 'package:f2048/services/sound_service.dart';
+import 'package:f2048/services/haptic_service.dart';
+import 'package:f2048/models/game_statistics.dart';
+import 'package:f2048/models/achievement.dart';
+import 'package:f2048/screens/main_menu_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -123,6 +130,12 @@ class TwentyFortyEightState extends State<TwentyFortyEight> with SingleTickerPro
 
   Timer? aiTimer;
 
+  // Track game session
+  DateTime? _gameStartTime;
+  bool _usedUndo = false;
+  Set<int> _tilesReachedThisGame = {};
+  int _highScore = 0;
+
   @override
   void initState() {
     super.initState();
@@ -135,10 +148,185 @@ class TwentyFortyEightState extends State<TwentyFortyEight> with SingleTickerPro
           gridTiles.forEach((t) => t.resetAnimations());
           toAdd.clear();
         });
+
+        // Check for game over
+        _checkGameOver();
       }
     });
 
+    _initializeServices();
     setupNewGame();
+  }
+
+  Future<void> _initializeServices() async {
+    await SoundService.instance.initialize();
+    await HapticService.instance.initialize();
+    await StatisticsService.instance.loadStatistics();
+    await AchievementService.instance.loadProgress();
+
+    // Set up achievement unlock listener
+    AchievementService.instance.addUnlockListener(_onAchievementUnlocked);
+
+    // Load high score
+    final stats = StatisticsService.instance.statistics;
+    setState(() {
+      _highScore = stats.highScore;
+    });
+  }
+
+  void _onAchievementUnlocked(Achievement achievement) {
+    SoundService.instance.playSound(SoundEffect.achievementUnlock);
+    HapticService.instance.onAchievementUnlock();
+
+    // Show achievement notification
+    _showAchievementNotification(achievement);
+  }
+
+  void _showAchievementNotification(Achievement achievement) {
+    showCupertinoDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => CupertinoAlertDialog(
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(achievement.icon, color: IOSColors.systemYellow),
+            const SizedBox(width: 8),
+            const Text('Achievement Unlocked!'),
+          ],
+        ),
+        content: Column(
+          children: [
+            const SizedBox(height: 8),
+            Text(
+              achievement.title,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            ),
+            const SizedBox(height: 4),
+            Text(achievement.description),
+          ],
+        ),
+        actions: [
+          CupertinoDialogAction(
+            isDefaultAction: true,
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Awesome!'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _checkGameOver() {
+    if (_isGameOver()) {
+      _endGame(false);
+    } else if (_hasWon()) {
+      _endGame(true);
+    }
+  }
+
+  bool _isGameOver() {
+    // Check if there are any empty tiles
+    if (gridTiles.any((tile) => tile.value == 0)) return false;
+
+    // Check if any adjacent tiles can merge
+    for (int y = 0; y < 4; y++) {
+      for (int x = 0; x < 4; x++) {
+        final current = grid[y][x].value;
+        if (x < 3 && grid[y][x + 1].value == current) return false;
+        if (y < 3 && grid[y + 1][x].value == current) return false;
+      }
+    }
+
+    return true;
+  }
+
+  bool _hasWon() {
+    return gridTiles.any((tile) => tile.value >= 2048);
+  }
+
+  Future<void> _endGame(bool won) async {
+    final playTimeSeconds = _gameStartTime != null
+        ? DateTime.now().difference(_gameStartTime!).inSeconds
+        : 0;
+
+    final bestTile = gridTiles.fold<int>(0, (max, tile) => tile.value > max ? tile.value : max);
+
+    final gameRecord = GameRecord(
+      timestamp: DateTime.now(),
+      score: score,
+      moves: gameStates.length,
+      bestTile: bestTile,
+      won: won,
+      playTimeSeconds: playTimeSeconds,
+      tilesReached: _tilesReachedThisGame.toList(),
+      usedUndo: _usedUndo,
+    );
+
+    // Record game statistics
+    await StatisticsService.instance.recordGame(gameRecord);
+
+    // Check achievements
+    final stats = StatisticsService.instance.statistics;
+    final unlockedAchievements = await AchievementService.instance.checkAchievements(stats, gameRecord);
+
+    // Play sound and haptic
+    if (won) {
+      SoundService.instance.playSound(SoundEffect.victory);
+      HapticService.instance.onAchievementUnlock();
+    } else {
+      SoundService.instance.playSound(SoundEffect.gameOver);
+      HapticService.instance.onGameOver();
+    }
+
+    // Update high score display
+    if (score > _highScore) {
+      setState(() {
+        _highScore = score;
+      });
+    }
+
+    // Show game over dialog
+    _showGameOverDialog(won, gameRecord, unlockedAchievements);
+  }
+
+  void _showGameOverDialog(bool won, GameRecord record, List<Achievement> newAchievements) {
+    showCupertinoDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => CupertinoAlertDialog(
+        title: Text(won ? 'Congratulations!' : 'Game Over'),
+        content: Column(
+          children: [
+            const SizedBox(height: 12),
+            Text(
+              'Score: ${record.score}',
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text('Moves: ${record.moves}'),
+            Text('Best Tile: ${record.bestTile}'),
+            if (newAchievements.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              const Text(
+                'New Achievements:',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              ...newAchievements.map((a) => Text('🏆 ${a.title}')),
+            ],
+          ],
+        ),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () {
+              Navigator.pop(context);
+              setupNewGame();
+            },
+            child: const Text('New Game'),
+          ),
+        ],
+      ),
+    );
   }
 
   int get score => gridTiles.fold(0, (sum, tile) => sum + tile.value);
@@ -229,22 +417,51 @@ class TwentyFortyEightState extends State<TwentyFortyEight> with SingleTickerPro
               letterSpacing: -1,
             ),
           ),
-          CupertinoButton(
-            padding: EdgeInsets.zero,
-            onPressed: () => _showInfoDialog(context),
-            child: Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: IOSColors.systemGray5,
-                shape: BoxShape.circle,
+          Row(
+            children: [
+              CupertinoButton(
+                padding: EdgeInsets.zero,
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    CupertinoPageRoute(
+                      builder: (context) => const MainMenuScreen(),
+                    ),
+                  );
+                },
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: IOSColors.systemGray5,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    CupertinoIcons.line_horizontal_3,
+                    color: IOSColors.systemGray,
+                    size: 20,
+                  ),
+                ),
               ),
-              child: const Icon(
-                CupertinoIcons.info,
-                color: IOSColors.systemGray,
-                size: 20,
+              const SizedBox(width: 8),
+              CupertinoButton(
+                padding: EdgeInsets.zero,
+                onPressed: () => _showInfoDialog(context),
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: IOSColors.systemGray5,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    CupertinoIcons.info,
+                    color: IOSColors.systemGray,
+                    size: 20,
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
         ],
       ),
@@ -270,6 +487,12 @@ class TwentyFortyEightState extends State<TwentyFortyEight> with SingleTickerPro
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           _buildScoreItem('SCORE', score),
+          Container(
+            width: 1,
+            height: 40,
+            color: IOSColors.systemGray5,
+          ),
+          _buildScoreItem('BEST', _highScore),
           Container(
             width: 1,
             height: 40,
@@ -353,6 +576,12 @@ class TwentyFortyEightState extends State<TwentyFortyEight> with SingleTickerPro
   }
 
   void undoMove() {
+    if (gameStates.isEmpty) return;
+
+    _usedUndo = true;
+    HapticService.instance.onButtonPress();
+    SoundService.instance.playSound(SoundEffect.buttonClick);
+
     GameState previousState = gameStates.removeLast();
     bool Function() mergeFn;
     switch (previousState.swipe) {
@@ -403,6 +632,17 @@ class TwentyFortyEightState extends State<TwentyFortyEight> with SingleTickerPro
         gameStates.add(GameState(gridBeforeSwipe, direction));
         addNewTiles([2]);
         controller.forward(from: 0);
+
+        // Play sound and haptic feedback
+        HapticService.instance.onTileSlide();
+        SoundService.instance.playSound(SoundEffect.tileSlide);
+
+        // Track tiles reached
+        for (var tile in gridTiles) {
+          if (tile.value > 0) {
+            _tilesReachedThisGame.add(tile.value);
+          }
+        }
       }
     });
   }
@@ -417,6 +657,7 @@ class TwentyFortyEightState extends State<TwentyFortyEight> with SingleTickerPro
 
   bool mergeTiles(List<Tile> tiles) {
     bool didChange = false;
+    bool didMerge = false;
     for (int i = 0; i < tiles.length; i++) {
       for (int j = i; j < tiles.length; j++) {
         if (tiles[j].value != 0) {
@@ -434,12 +675,17 @@ class TwentyFortyEightState extends State<TwentyFortyEight> with SingleTickerPro
             int resultValue = tiles[j].value;
             tiles[j].moveTo(controller, tiles[i].x, tiles[i].y);
             if (mergeTile != null) {
+              didMerge = true;
               resultValue += mergeTile.value;
               mergeTile.moveTo(controller, tiles[i].x, tiles[i].y);
               mergeTile.bounce(controller);
               mergeTile.changeNumber(controller, resultValue);
               mergeTile.value = 0;
               tiles[j].changeNumber(controller, 0);
+
+              // Play merge sound with pitch based on tile value
+              SoundService.instance.playMergeSound(resultValue);
+              HapticService.instance.onTileMerge();
             }
             tiles[j].value = 0;
             tiles[i].value = resultValue;
@@ -469,6 +715,14 @@ class TwentyFortyEightState extends State<TwentyFortyEight> with SingleTickerPro
       toAdd.clear();
       addNewTiles([2, 2]);
       controller.forward(from: 0);
+
+      // Reset game session tracking
+      _gameStartTime = DateTime.now();
+      _usedUndo = false;
+      _tilesReachedThisGame = {2};
     });
+
+    HapticService.instance.onButtonPress();
+    SoundService.instance.playSound(SoundEffect.buttonClick);
   }
 }
