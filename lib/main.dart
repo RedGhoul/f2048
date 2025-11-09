@@ -1,18 +1,93 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
 import 'package:f2048/grid-properties.dart';
 import 'package:f2048/tile.dart';
+import 'package:f2048/ios_theme.dart';
+import 'package:f2048/onboarding_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
-  runApp(MaterialApp(
-    title: '2048',
-    theme: ThemeData(
-      primarySwatch: Colors.blue,
-      visualDensity: VisualDensity.adaptivePlatformDensity,
+  WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarBrightness: Brightness.light,
+      statusBarIconBrightness: Brightness.dark,
     ),
-    home: TwentyFortyEight(),
-  ));
+  );
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: '2048',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        visualDensity: VisualDensity.adaptivePlatformDensity,
+        scaffoldBackgroundColor: IOSColors.systemBackground,
+        fontFamily: '.SF Pro Text',
+      ),
+      home: const AppWrapper(),
+    );
+  }
+}
+
+class AppWrapper extends StatefulWidget {
+  const AppWrapper({Key? key}) : super(key: key);
+
+  @override
+  State<AppWrapper> createState() => _AppWrapperState();
+}
+
+class _AppWrapperState extends State<AppWrapper> {
+  bool _isLoading = true;
+  bool _showOnboarding = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkOnboardingStatus();
+  }
+
+  Future<void> _checkOnboardingStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    final onboardingComplete = prefs.getBool('onboarding_complete') ?? false;
+    setState(() {
+      _showOnboarding = !onboardingComplete;
+      _isLoading = false;
+    });
+  }
+
+  void _completeOnboarding() {
+    setState(() {
+      _showOnboarding = false;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: IOSColors.systemBackground,
+        body: Center(
+          child: CupertinoActivityIndicator(),
+        ),
+      );
+    }
+
+    if (_showOnboarding) {
+      return OnboardingScreen(onComplete: _completeOnboarding);
+    }
+
+    return const TwentyFortyEight();
+  }
 }
 
 enum SwipeDirection { up, down, left, right }
@@ -29,6 +104,8 @@ class GameState {
 }
 
 class TwentyFortyEight extends StatefulWidget {
+  const TwentyFortyEight({Key? key}) : super(key: key);
+
   @override
   TwentyFortyEightState createState() => TwentyFortyEightState();
 }
@@ -64,10 +141,12 @@ class TwentyFortyEightState extends State<TwentyFortyEight> with SingleTickerPro
     setupNewGame();
   }
 
+  int get score => gridTiles.fold(0, (sum, tile) => sum + tile.value);
+
   @override
   Widget build(BuildContext context) {
-    double contentPadding = 16;
-    double borderSize = 4;
+    double contentPadding = 20;
+    double borderSize = 6;
     double gridSize = MediaQuery.of(context).size.width - contentPadding * 2;
     double tileSize = (gridSize - borderSize * 2) / 4;
     List<Widget> stackItems = [];
@@ -76,40 +155,201 @@ class TwentyFortyEightState extends State<TwentyFortyEight> with SingleTickerPro
         y: tileSize * t.y,
         containerSize: tileSize,
         size: tileSize - borderSize * 2,
-        color: lightBrown)));
+        color: IOSColors.tileEmpty)));
     stackItems.addAll(allTiles.map((tile) => AnimatedBuilder(
         animation: controller,
         builder: (context, child) => tile.animatedValue.value == 0
-            ? SizedBox()
+            ? const SizedBox()
             : TileWidget(
                 x: tileSize * tile.animatedX.value,
                 y: tileSize * tile.animatedY.value,
                 containerSize: tileSize,
                 size: (tileSize - borderSize * 2) * tile.size.value,
-                color: numTileColor[tile.animatedValue.value],
+                color: iosTileColors[tile.animatedValue.value],
                 child: Center(child: TileNumber(tile.animatedValue.value))))));
 
     return Scaffold(
-        backgroundColor: tan,
-        body: Padding(
-            padding: EdgeInsets.all(contentPadding),
-            child: Column(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
-              Swiper(
-                  up: () => merge(SwipeDirection.up),
-                  down: () => merge(SwipeDirection.down),
-                  left: () => merge(SwipeDirection.left),
-                  right: () => merge(SwipeDirection.right),
-                  child: Container(
-                      height: gridSize,
-                      width: gridSize,
-                      padding: EdgeInsets.all(borderSize),
-                      decoration: BoxDecoration(borderRadius: BorderRadius.circular(cornerRadius), color: darkBrown),
-                      child: Stack(
-                        children: stackItems,
-                      ))),
-              BigButton(label: "Undo", color: numColor, onPressed: gameStates.isEmpty ? null : undoMove),
-              BigButton(label: "Restart", color: orange, onPressed: setupNewGame),
-            ])));
+        backgroundColor: IOSColors.systemBackground,
+        body: SafeArea(
+          child: Column(
+            children: [
+              // iOS-style Navigation Bar
+              _buildNavigationBar(),
+              // Score Card
+              _buildScoreCard(),
+              const SizedBox(height: 20),
+              // Game Board
+              Expanded(
+                child: Center(
+                  child: Swiper(
+                      up: () => merge(SwipeDirection.up),
+                      down: () => merge(SwipeDirection.down),
+                      left: () => merge(SwipeDirection.left),
+                      right: () => merge(SwipeDirection.right),
+                      child: Container(
+                          height: gridSize,
+                          width: gridSize,
+                          padding: EdgeInsets.all(borderSize),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(16),
+                            color: IOSColors.boardBackground,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.1),
+                                blurRadius: 20,
+                                offset: const Offset(0, 10),
+                              ),
+                            ],
+                          ),
+                          child: Stack(
+                            children: stackItems,
+                          ))),
+                ),
+              ),
+              // Control Buttons
+              _buildControlButtons(),
+              const SizedBox(height: 20),
+            ],
+          ),
+        ));
+  }
+
+  Widget _buildNavigationBar() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Text(
+            '2048',
+            style: TextStyle(
+              fontSize: 34,
+              fontWeight: FontWeight.bold,
+              color: CupertinoColors.black,
+              letterSpacing: -1,
+            ),
+          ),
+          CupertinoButton(
+            padding: EdgeInsets.zero,
+            onPressed: () => _showInfoDialog(context),
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: IOSColors.systemGray5,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                CupertinoIcons.info,
+                color: IOSColors.systemGray,
+                size: 20,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildScoreCard() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _buildScoreItem('SCORE', score),
+          Container(
+            width: 1,
+            height: 40,
+            color: IOSColors.systemGray5,
+          ),
+          _buildScoreItem('MOVES', gameStates.length),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildScoreItem(String label, int value) {
+    return Column(
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: IOSColors.systemGray,
+            letterSpacing: 0.5,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          value.toString(),
+          style: const TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.bold,
+            color: CupertinoColors.black,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildControlButtons() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Row(
+        children: [
+          Expanded(
+            child: IOSButton(
+              label: "Undo",
+              icon: CupertinoIcons.arrow_uturn_left,
+              color: IOSColors.systemBlue,
+              onPressed: gameStates.isEmpty ? null : undoMove,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: IOSButton(
+              label: "Restart",
+              icon: CupertinoIcons.refresh,
+              color: IOSColors.systemOrange,
+              onPressed: setupNewGame,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showInfoDialog(BuildContext context) {
+    showCupertinoDialog(
+      context: context,
+      builder: (context) => CupertinoAlertDialog(
+        title: const Text('How to Play'),
+        content: const Text(
+          '\nSwipe in any direction to move tiles.\n\nWhen two tiles with the same number touch, they merge into one!\n\nGoal: Create a tile with the number 2048.',
+        ),
+        actions: [
+          CupertinoDialogAction(
+            isDefaultAction: true,
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Got it'),
+          ),
+        ],
+      ),
+    );
   }
 
   void undoMove() {

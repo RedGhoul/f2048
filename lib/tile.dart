@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/widgets.dart';
 import 'package:f2048/grid-properties.dart';
+import 'package:f2048/ios_theme.dart';
 
 class Tile {
   final int x;
@@ -77,7 +79,19 @@ class TileWidget extends StatelessWidget {
               child: Container(
                   width: size,
                   height: size,
-                  decoration: BoxDecoration(borderRadius: BorderRadius.circular(cornerRadius), color: color),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    color: color,
+                    boxShadow: color != IOSColors.tileEmpty
+                        ? [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ]
+                        : null,
+                  ),
                   child: child))));
 }
 
@@ -88,30 +102,68 @@ class TileNumber extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Text("$val",
-      style: TextStyle(color: numTextColor[val], fontSize: val > 512 ? 28 : 35, fontWeight: FontWeight.w900));
+      style: TextStyle(
+        color: iosTileTextColors[val],
+        fontSize: val > 512 ? 28 : 35,
+        fontWeight: FontWeight.w900,
+        letterSpacing: -0.5,
+      ));
 }
 
-class BigButton extends StatelessWidget {
+class IOSButton extends StatelessWidget {
   final String label;
+  final IconData icon;
   final Color color;
   final void Function()? onPressed;
 
-  const BigButton({Key? key, required this.label, required this.color, this.onPressed}) : super(key: key);
+  const IOSButton({
+    Key? key,
+    required this.label,
+    required this.icon,
+    required this.color,
+    this.onPressed,
+  }) : super(key: key);
 
   @override
-  Widget build(BuildContext context) => Container(
-      height: 80,
-      width: 400,
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: color,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(cornerRadius),
+  Widget build(BuildContext context) => CupertinoButton(
+        padding: EdgeInsets.zero,
+        onPressed: onPressed,
+        child: Container(
+          height: 56,
+          decoration: BoxDecoration(
+            color: onPressed == null ? IOSColors.systemGray4 : color,
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: onPressed != null
+                ? [
+                    BoxShadow(
+                      color: color.withOpacity(0.3),
+                      blurRadius: 12,
+                      offset: const Offset(0, 6),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                color: Colors.white,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 17,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
           ),
         ),
-        child: Text(label, style: TextStyle(color: Colors.white, fontSize: 34, fontWeight: FontWeight.w700)),
-        onPressed: onPressed,
-      ));
+      );
 }
 
 class Swiper extends StatelessWidget {
