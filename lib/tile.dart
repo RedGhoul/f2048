@@ -97,13 +97,14 @@ class TileWidget extends StatelessWidget {
 
 class TileNumber extends StatelessWidget {
   final int val;
+  final Color? textColor;
 
-  const TileNumber(this.val, {Key? key}) : super(key: key);
+  const TileNumber(this.val, {Key? key, this.textColor}) : super(key: key);
 
   @override
   Widget build(BuildContext context) => Text("$val",
       style: TextStyle(
-        color: iosTileTextColors[val],
+        color: textColor ?? iosTileTextColors[val] ?? Colors.white,
         fontSize: val > 512 ? 28 : 35,
         fontWeight: FontWeight.w900,
         letterSpacing: -0.5,
