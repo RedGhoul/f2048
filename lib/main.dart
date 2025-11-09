@@ -12,8 +12,13 @@ import 'package:f2048/services/statistics_service.dart';
 import 'package:f2048/services/achievement_service.dart';
 import 'package:f2048/services/sound_service.dart';
 import 'package:f2048/services/haptic_service.dart';
+import 'package:f2048/services/game_mode_service.dart';
+import 'package:f2048/services/theme_service.dart';
+import 'package:f2048/services/power_up_service.dart';
 import 'package:f2048/models/game_statistics.dart';
 import 'package:f2048/models/achievement.dart';
+import 'package:f2048/models/game_mode.dart';
+import 'package:f2048/models/theme.dart';
 import 'package:f2048/screens/main_menu_screen.dart';
 
 void main() {
@@ -120,13 +125,16 @@ class TwentyFortyEight extends StatefulWidget {
 class TwentyFortyEightState extends State<TwentyFortyEight> with SingleTickerProviderStateMixin {
   late AnimationController controller;
 
-  List<List<Tile>> grid = List.generate(4, (y) => List.generate(4, (x) => Tile(x, y, 0)));
+  List<List<Tile>> grid = [];
   List<GameState> gameStates = [];
   List<Tile> toAdd = [];
 
+  // Dynamic grid size based on game mode
+  int get gridSize => GameModeService.instance.currentConfig.gridSize;
+
   Iterable<Tile> get gridTiles => grid.expand((e) => e);
   Iterable<Tile> get allTiles => [gridTiles, toAdd].expand((e) => e);
-  List<List<Tile>> get gridCols => List.generate(4, (x) => List.generate(4, (y) => grid[y][x]));
+  List<List<Tile>> get gridCols => List.generate(gridSize, (x) => List.generate(gridSize, (y) => grid[y][x]));
 
   Timer? aiTimer;
 
@@ -135,6 +143,13 @@ class TwentyFortyEightState extends State<TwentyFortyEight> with SingleTickerPro
   bool _usedUndo = false;
   Set<int> _tilesReachedThisGame = {};
   int _highScore = 0;
+
+  // Time Attack mode
+  Timer? _gameTimer;
+  int _remainingSeconds = 0;
+
+  // Current theme
+  GameTheme _currentTheme = gameThemes[ThemeType.defaultTheme]!;
 
   @override
   void initState() {
@@ -163,14 +178,20 @@ class TwentyFortyEightState extends State<TwentyFortyEight> with SingleTickerPro
     await HapticService.instance.initialize();
     await StatisticsService.instance.loadStatistics();
     await AchievementService.instance.loadProgress();
+    await GameModeService.instance.initialize();
+    await ThemeService.instance.initialize();
+    await PowerUpService.instance.loadInventory();
 
     // Set up achievement unlock listener
     AchievementService.instance.addUnlockListener(_onAchievementUnlocked);
 
     // Load high score
     final stats = StatisticsService.instance.statistics;
+    final modeStats = GameModeService.instance.getStatsForMode(GameModeService.instance.currentMode);
+
     setState(() {
-      _highScore = stats.highScore;
+      _highScore = modeStats.highScore > 0 ? modeStats.highScore : stats.highScore;
+      _currentTheme = ThemeService.instance.currentTheme;
     });
   }
 
@@ -226,15 +247,20 @@ class TwentyFortyEightState extends State<TwentyFortyEight> with SingleTickerPro
   }
 
   bool _isGameOver() {
+    final config = GameModeService.instance.currentConfig;
+
+    // Zen mode and Time Attack have no game over
+    if (!config.hasGameOver) return false;
+
     // Check if there are any empty tiles
     if (gridTiles.any((tile) => tile.value == 0)) return false;
 
     // Check if any adjacent tiles can merge
-    for (int y = 0; y < 4; y++) {
-      for (int x = 0; x < 4; x++) {
+    for (int y = 0; y < gridSize; y++) {
+      for (int x = 0; x < gridSize; x++) {
         final current = grid[y][x].value;
-        if (x < 3 && grid[y][x + 1].value == current) return false;
-        if (y < 3 && grid[y + 1][x].value == current) return false;
+        if (x < gridSize - 1 && grid[y][x + 1].value == current) return false;
+        if (y < gridSize - 1 && grid[y + 1][x].value == current) return false;
       }
     }
 
@@ -242,10 +268,14 @@ class TwentyFortyEightState extends State<TwentyFortyEight> with SingleTickerPro
   }
 
   bool _hasWon() {
-    return gridTiles.any((tile) => tile.value >= 2048);
+    final config = GameModeService.instance.currentConfig;
+    return gridTiles.any((tile) => tile.value >= config.winTile);
   }
 
   Future<void> _endGame(bool won) async {
+    // Stop timer if in Time Attack mode
+    _gameTimer?.cancel();
+
     final playTimeSeconds = _gameStartTime != null
         ? DateTime.now().difference(_gameStartTime!).inSeconds
         : 0;
@@ -263,8 +293,9 @@ class TwentyFortyEightState extends State<TwentyFortyEight> with SingleTickerPro
       usedUndo: _usedUndo,
     );
 
-    // Record game statistics
+    // Record game statistics (both global and per-mode)
     await StatisticsService.instance.recordGame(gameRecord);
+    await GameModeService.instance.recordGame(score, gameStates.length, bestTile, won);
 
     // Check achievements
     final stats = StatisticsService.instance.statistics;
@@ -280,9 +311,10 @@ class TwentyFortyEightState extends State<TwentyFortyEight> with SingleTickerPro
     }
 
     // Update high score display
-    if (score > _highScore) {
+    final modeStats = GameModeService.instance.getStatsForMode(GameModeService.instance.currentMode);
+    if (modeStats.highScore > _highScore) {
       setState(() {
-        _highScore = score;
+        _highScore = modeStats.highScore;
       });
     }
 
@@ -333,17 +365,18 @@ class TwentyFortyEightState extends State<TwentyFortyEight> with SingleTickerPro
 
   @override
   Widget build(BuildContext context) {
+    final config = GameModeService.instance.currentConfig;
     double contentPadding = 20;
     double borderSize = 6;
-    double gridSize = MediaQuery.of(context).size.width - contentPadding * 2;
-    double tileSize = (gridSize - borderSize * 2) / 4;
+    double boardSize = MediaQuery.of(context).size.width - contentPadding * 2;
+    double tileSize = (boardSize - borderSize * 2) / gridSize;
     List<Widget> stackItems = [];
     stackItems.addAll(gridTiles.map((t) => TileWidget(
         x: tileSize * t.x,
         y: tileSize * t.y,
         containerSize: tileSize,
         size: tileSize - borderSize * 2,
-        color: IOSColors.tileEmpty)));
+        color: _currentTheme.tileEmpty)));
     stackItems.addAll(allTiles.map((tile) => AnimatedBuilder(
         animation: controller,
         builder: (context, child) => tile.animatedValue.value == 0
@@ -353,17 +386,20 @@ class TwentyFortyEightState extends State<TwentyFortyEight> with SingleTickerPro
                 y: tileSize * tile.animatedY.value,
                 containerSize: tileSize,
                 size: (tileSize - borderSize * 2) * tile.size.value,
-                color: iosTileColors[tile.animatedValue.value],
-                child: Center(child: TileNumber(tile.animatedValue.value))))));
+                color: _currentTheme.tileColors[tile.animatedValue.value] ?? _currentTheme.tileColors[2048]!,
+                child: Center(child: TileNumber(
+                  tile.animatedValue.value,
+                  textColor: _currentTheme.tileTextColors[tile.animatedValue.value] ?? Colors.white,
+                ))))));
 
     return Scaffold(
-        backgroundColor: IOSColors.systemBackground,
+        backgroundColor: _currentTheme.backgroundColor,
         body: SafeArea(
           child: Column(
             children: [
               // iOS-style Navigation Bar
               _buildNavigationBar(),
-              // Score Card
+              // Score Card (and Timer for Time Attack)
               _buildScoreCard(),
               const SizedBox(height: 20),
               // Game Board
@@ -375,12 +411,12 @@ class TwentyFortyEightState extends State<TwentyFortyEight> with SingleTickerPro
                       left: () => merge(SwipeDirection.left),
                       right: () => merge(SwipeDirection.right),
                       child: Container(
-                          height: gridSize,
-                          width: gridSize,
+                          height: boardSize,
+                          width: boardSize,
                           padding: EdgeInsets.all(borderSize),
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(16),
-                            color: IOSColors.boardBackground,
+                            color: _currentTheme.boardBackground,
                             boxShadow: [
                               BoxShadow(
                                 color: Colors.black.withOpacity(0.1),
@@ -421,13 +457,20 @@ class TwentyFortyEightState extends State<TwentyFortyEight> with SingleTickerPro
             children: [
               CupertinoButton(
                 padding: EdgeInsets.zero,
-                onPressed: () {
-                  Navigator.push(
+                onPressed: () async {
+                  final result = await Navigator.push(
                     context,
                     CupertinoPageRoute(
                       builder: (context) => const MainMenuScreen(),
                     ),
                   );
+                  // If game mode or theme changed, refresh the game
+                  if (result == true && mounted) {
+                    setState(() {
+                      _currentTheme = ThemeService.instance.currentTheme;
+                    });
+                    setupNewGame();
+                  }
                 },
                 child: Container(
                   width: 40,
@@ -469,6 +512,8 @@ class TwentyFortyEightState extends State<TwentyFortyEight> with SingleTickerPro
   }
 
   Widget _buildScoreCard() {
+    final config = GameModeService.instance.currentConfig;
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
       padding: const EdgeInsets.all(20),
@@ -486,6 +531,14 @@ class TwentyFortyEightState extends State<TwentyFortyEight> with SingleTickerPro
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
+          if (config.hasTimer && config.timeLimit != null) ...[
+            _buildScoreItem('TIME', _formatTime(_remainingSeconds)),
+            Container(
+              width: 1,
+              height: 40,
+              color: IOSColors.systemGray5,
+            ),
+          ],
           _buildScoreItem('SCORE', score),
           Container(
             width: 1,
@@ -493,18 +546,26 @@ class TwentyFortyEightState extends State<TwentyFortyEight> with SingleTickerPro
             color: IOSColors.systemGray5,
           ),
           _buildScoreItem('BEST', _highScore),
-          Container(
-            width: 1,
-            height: 40,
-            color: IOSColors.systemGray5,
-          ),
-          _buildScoreItem('MOVES', gameStates.length),
+          if (!config.hasTimer) ...[
+            Container(
+              width: 1,
+              height: 40,
+              color: IOSColors.systemGray5,
+            ),
+            _buildScoreItem('MOVES', gameStates.length),
+          ],
         ],
       ),
     );
   }
 
-  Widget _buildScoreItem(String label, int value) {
+  String _formatTime(int seconds) {
+    int minutes = seconds ~/ 60;
+    int secs = seconds % 60;
+    return '${minutes}:${secs.toString().padLeft(2, '0')}';
+  }
+
+  Widget _buildScoreItem(String label, dynamic value) {
     return Column(
       children: [
         Text(
@@ -576,9 +637,15 @@ class TwentyFortyEightState extends State<TwentyFortyEight> with SingleTickerPro
   }
 
   void undoMove() {
+    final config = GameModeService.instance.currentConfig;
     if (gameStates.isEmpty) return;
 
-    _usedUndo = true;
+    // In Zen mode, undo is always allowed
+    // In other modes, we track that undo was used
+    if (!config.unlimitedUndo) {
+      _usedUndo = true;
+    }
+
     HapticService.instance.onButtonPress();
     SoundService.instance.playSound(SoundEffect.buttonClick);
 
@@ -706,7 +773,12 @@ class TwentyFortyEightState extends State<TwentyFortyEight> with SingleTickerPro
   }
 
   void setupNewGame() {
+    final config = GameModeService.instance.currentConfig;
+
     setState(() {
+      // Initialize grid with dynamic size
+      grid = List.generate(gridSize, (y) => List.generate(gridSize, (x) => Tile(x, y, 0)));
+
       gameStates.clear();
       gridTiles.forEach((t) {
         t.value = 0;
@@ -720,9 +792,31 @@ class TwentyFortyEightState extends State<TwentyFortyEight> with SingleTickerPro
       _gameStartTime = DateTime.now();
       _usedUndo = false;
       _tilesReachedThisGame = {2};
+
+      // Set up timer for Time Attack mode
+      _gameTimer?.cancel();
+      if (config.hasTimer && config.timeLimit != null) {
+        _remainingSeconds = config.timeLimit!;
+        _gameTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+          setState(() {
+            _remainingSeconds--;
+            if (_remainingSeconds <= 0) {
+              timer.cancel();
+              _endGame(false); // Time's up
+            }
+          });
+        });
+      }
     });
 
     HapticService.instance.onButtonPress();
     SoundService.instance.playSound(SoundEffect.buttonClick);
+  }
+
+  @override
+  void dispose() {
+    controller.dispose();
+    _gameTimer?.cancel();
+    super.dispose();
   }
 }

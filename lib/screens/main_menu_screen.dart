@@ -5,6 +5,8 @@ import 'package:f2048/screens/statistics_screen.dart';
 import 'package:f2048/screens/achievements_screen.dart';
 import 'package:f2048/screens/daily_challenge_screen.dart';
 import 'package:f2048/screens/settings_screen.dart';
+import 'package:f2048/screens/game_mode_screen.dart';
+import 'package:f2048/screens/theme_selection_screen.dart';
 
 class MainMenuScreen extends StatelessWidget {
   const MainMenuScreen({Key? key}) : super(key: key);
@@ -28,6 +30,46 @@ class MainMenuScreen extends StatelessWidget {
           padding: const EdgeInsets.all(20),
           children: [
             const SizedBox(height: 20),
+            _buildMenuCard(
+              context,
+              'Game Mode',
+              'Choose your preferred game mode',
+              CupertinoIcons.game_controller_solid,
+              IOSColors.systemPurple,
+              () async {
+                final result = await Navigator.push(
+                  context,
+                  CupertinoPageRoute(
+                    builder: (context) => const GameModeScreen(),
+                  ),
+                );
+                // If mode changed, pop with result to refresh game
+                if (result == true && context.mounted) {
+                  Navigator.pop(context, result);
+                }
+              },
+            ),
+            const SizedBox(height: 16),
+            _buildMenuCard(
+              context,
+              'Themes',
+              'Customize your board appearance',
+              CupertinoIcons.paintbrush_fill,
+              IOSColors.systemPink,
+              () async {
+                final result = await Navigator.push(
+                  context,
+                  CupertinoPageRoute(
+                    builder: (context) => const ThemeSelectionScreen(),
+                  ),
+                );
+                // If theme changed, pop with result to refresh game
+                if (result == true && context.mounted) {
+                  Navigator.pop(context, result);
+                }
+              },
+            ),
+            const SizedBox(height: 16),
             _buildMenuCard(
               context,
               'Daily Challenge',
