@@ -17,6 +17,34 @@ class ThemeService {
     return _instance!;
   }
 
+  // Achievement to theme mapping
+  static const Map<String, ThemeType> achievementToTheme = {
+    'first_win': ThemeType.dark,           // Reach 2048 -> Dark theme
+    'beginner': ThemeType.nature,          // Play 10 games -> Nature theme
+    'efficient_player': ThemeType.ocean,   // Reach 2048 in <200 moves -> Ocean theme
+    'power_player': ThemeType.sunset,      // Reach 4096 -> Sunset theme
+    'speed_demon': ThemeType.neon,         // Reach 2048 in <5 min -> Neon theme
+    'perfect_game': ThemeType.minimal,     // Reach 2048 without undo -> Minimal theme
+  };
+
+  // Get achievement ID for a theme (reverse lookup)
+  static String? getAchievementForTheme(ThemeType theme) {
+    for (var entry in achievementToTheme.entries) {
+      if (entry.value == theme) {
+        return entry.key;
+      }
+    }
+    return null;
+  }
+
+  // Unlock theme by achievement ID
+  Future<void> unlockThemeByAchievement(String achievementId) async {
+    final theme = achievementToTheme[achievementId];
+    if (theme != null) {
+      await unlockTheme(theme);
+    }
+  }
+
   // Get current theme
   ThemeType get currentThemeType => _currentTheme;
 

@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:f2048/ios_theme.dart';
 import 'package:f2048/models/theme.dart';
+import 'package:f2048/models/achievement.dart';
 import 'package:f2048/services/theme_service.dart';
 
 class ThemeSelectionScreen extends StatefulWidget {
@@ -184,6 +185,10 @@ class _ThemeSelectionScreenState extends State<ThemeSelectionScreen> {
                           color: IOSColors.systemGray,
                         ),
                       ),
+                      if (isLocked) ...[
+                        const SizedBox(height: 8),
+                        _buildUnlockRequirement(theme.type),
+                      ],
                     ],
                   ),
                 ),
@@ -210,7 +215,63 @@ class _ThemeSelectionScreenState extends State<ThemeSelectionScreen> {
     );
   }
 
+  Widget _buildUnlockRequirement(ThemeType themeType) {
+    final achievementId = ThemeService.getAchievementForTheme(themeType);
+    if (achievementId == null) {
+      return const SizedBox.shrink();
+    }
+
+    Achievement? achievement;
+    try {
+      achievement = achievements.firstWhere((a) => a.id == achievementId);
+    } catch (e) {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: IOSColors.systemOrange.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            achievement.icon,
+            size: 12,
+            color: IOSColors.systemOrange,
+          ),
+          const SizedBox(width: 4),
+          Expanded(
+            child: Text(
+              achievement.title,
+              style: TextStyle(
+                fontSize: 11,
+                color: IOSColors.systemOrange,
+                fontWeight: FontWeight.w600,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showUnlockDialog(GameTheme theme) {
+    // Get the achievement required to unlock this theme
+    final achievementId = ThemeService.getAchievementForTheme(theme.type);
+    Achievement? requiredAchievement;
+
+    if (achievementId != null) {
+      try {
+        requiredAchievement = achievements.firstWhere((a) => a.id == achievementId);
+      } catch (e) {
+        // Achievement not found
+      }
+    }
+
     showCupertinoDialog(
       context: context,
       builder: (context) => CupertinoAlertDialog(
@@ -229,12 +290,32 @@ class _ThemeSelectionScreenState extends State<ThemeSelectionScreen> {
               'The "${theme.name}" theme is currently locked.',
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 8),
-            const Text(
-              'Unlock themes by completing achievements or through in-app purchases.',
-              style: TextStyle(fontSize: 13),
-              textAlign: TextAlign.center,
-            ),
+            if (requiredAchievement != null) ...[
+              const SizedBox(height: 12),
+              Icon(
+                requiredAchievement.icon,
+                color: IOSColors.systemBlue,
+                size: 32,
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Unlock by completing:',
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                requiredAchievement.title,
+                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                requiredAchievement.description,
+                style: TextStyle(fontSize: 13, color: IOSColors.systemGray),
+                textAlign: TextAlign.center,
+              ),
+            ],
           ],
         ),
         actions: [

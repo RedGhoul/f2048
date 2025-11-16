@@ -1,7 +1,6 @@
 import 'package:share_plus/share_plus.dart';
 import 'package:f2048/models/game_statistics.dart';
 import 'package:f2048/models/game_mode.dart';
-import 'package:f2048/models/user_profile.dart';
 
 class ShareService {
   static ShareService? _instance;
@@ -66,40 +65,6 @@ Playing F2048 - Join me!
     );
   }
 
-  // Share profile stats
-  Future<void> shareProfile({
-    required UserProfile profile,
-    required GameStatistics stats,
-  }) async {
-    final rankEmoji = _getRankEmoji(profile.rank);
-    final winRate = stats.totalGamesPlayed > 0
-        ? ((stats.totalWins / stats.totalGamesPlayed) * 100).toStringAsFixed(1)
-        : '0.0';
-
-    final message = '''
-$rankEmoji My F2048 Profile
-
-Player: ${profile.displayName}
-Rank: ${_getRankName(profile.rank)}
-Level: ${profile.level}
-
-📊 Career Stats
-Games: ${_formatNumber(stats.totalGamesPlayed)}
-Wins: ${_formatNumber(stats.totalWins)} ($winRate%)
-High Score: ${_formatNumber(stats.highScore)}
-Best Tile: ${stats.bestTile} ${_getTileEmoji(stats.bestTile)}
-Win Streak: ${stats.longestWinStreak}
-
-Join me in F2048!
-#F2048 #PuzzleGame
-''';
-
-    await Share.share(
-      message,
-      subject: 'My F2048 Profile',
-    );
-  }
-
   // Share daily challenge result
   Future<void> shareDailyChallengeResult({
     required DateTime challengeDate,
@@ -126,35 +91,6 @@ Can you beat my score?
     await Share.share(
       message,
       subject: 'F2048 Daily Challenge',
-    );
-  }
-
-  // Share leaderboard position
-  Future<void> shareLeaderboardRank({
-    required int rank,
-    required int score,
-    required int bestTile,
-    required GameMode gameMode,
-    required String leaderboardType,
-  }) async {
-    final rankEmoji = rank == 1 ? '🥇' : rank == 2 ? '🥈' : rank == 3 ? '🥉' : '🏆';
-    final modeText = _getModeName(gameMode);
-
-    final message = '''
-$rankEmoji Rank #$rank on Leaderboard!
-
-Mode: $modeText
-Period: $leaderboardType
-Score: ${_formatNumber(score)}
-Best Tile: $bestTile ${_getTileEmoji(bestTile)}
-
-Think you can beat me?
-#F2048 #Leaderboard
-''';
-
-    await Share.share(
-      message,
-      subject: 'F2048 Leaderboard',
     );
   }
 
@@ -201,41 +137,5 @@ Think you can beat me?
     if (tile >= 512) return '✨';
     if (tile >= 256) return '💫';
     return '🎯';
-  }
-
-  // Helper: Get rank name
-  String _getRankName(PlayerRank rank) {
-    switch (rank) {
-      case PlayerRank.beginner:
-        return 'Beginner';
-      case PlayerRank.intermediate:
-        return 'Intermediate';
-      case PlayerRank.advanced:
-        return 'Advanced';
-      case PlayerRank.expert:
-        return 'Expert';
-      case PlayerRank.master:
-        return 'Master';
-      case PlayerRank.legend:
-        return 'Legend';
-    }
-  }
-
-  // Helper: Get emoji for rank
-  String _getRankEmoji(PlayerRank rank) {
-    switch (rank) {
-      case PlayerRank.beginner:
-        return '🌱';
-      case PlayerRank.intermediate:
-        return '🎮';
-      case PlayerRank.advanced:
-        return '⭐';
-      case PlayerRank.expert:
-        return '💪';
-      case PlayerRank.master:
-        return '🔥';
-      case PlayerRank.legend:
-        return '👑';
-    }
   }
 }
