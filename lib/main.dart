@@ -200,6 +200,9 @@ class TwentyFortyEightState extends State<TwentyFortyEight> with SingleTickerPro
     SoundService.instance.playSound(SoundEffect.achievementUnlock);
     HapticService.instance.onAchievementUnlock();
 
+    // Unlock theme if this achievement unlocks one
+    ThemeService.instance.unlockThemeByAchievement(achievement.id);
+
     // Show achievement notification
     _showAchievementNotification(achievement);
   }
