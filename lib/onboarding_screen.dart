@@ -23,18 +23,42 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
       title: 'Welcome to 2048',
       description: 'Join numbers and get to the 2048 tile!\nSwipe to move tiles in any direction.',
       color: IOSColors.systemBlue,
+      type: OnboardingPageType.standard,
     ),
     OnboardingPage(
       icon: CupertinoIcons.arrow_up_down_square,
       title: 'How to Play',
       description: 'Swipe up, down, left, or right to move all tiles.\nWhen two tiles with the same number touch, they merge!',
       color: IOSColors.systemPurple,
+      type: OnboardingPageType.standard,
     ),
     OnboardingPage(
       icon: CupertinoIcons.star_fill,
       title: 'Keep Going',
       description: 'Keep playing to reach higher scores.\nUse undo to correct your mistakes!',
       color: IOSColors.systemOrange,
+      type: OnboardingPageType.standard,
+    ),
+    OnboardingPage(
+      icon: CupertinoIcons.square_grid_2x2,
+      title: 'Multiple Game Modes',
+      description: 'Choose from 6 different game modes to match your play style!',
+      color: IOSColors.systemTeal,
+      type: OnboardingPageType.gameModes,
+    ),
+    OnboardingPage(
+      icon: CupertinoIcons.paintbrush_fill,
+      title: 'Beautiful Themes',
+      description: 'Unlock stunning themes by earning achievements!',
+      color: IOSColors.systemIndigo,
+      type: OnboardingPageType.themes,
+    ),
+    OnboardingPage(
+      icon: CupertinoIcons.rosette,
+      title: 'Earn Achievements',
+      description: 'Complete challenges and unlock rewards as you play!',
+      color: IOSColors.systemGreen,
+      type: OnboardingPageType.achievements,
     ),
   ];
 
@@ -73,26 +97,62 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
     return CupertinoPageScaffold(
       backgroundColor: IOSColors.systemBackground,
       child: SafeArea(
-        child: Column(
+        child: Stack(
           children: [
-            Expanded(
-              child: PageView.builder(
-                controller: _pageController,
-                onPageChanged: _onPageChanged,
-                itemCount: _pages.length,
-                itemBuilder: (context, index) {
-                  return _buildPage(_pages[index]);
-                },
-              ),
+            Column(
+              children: [
+                _buildSkipButton(),
+                Expanded(
+                  child: PageView.builder(
+                    controller: _pageController,
+                    onPageChanged: _onPageChanged,
+                    itemCount: _pages.length,
+                    itemBuilder: (context, index) {
+                      return _buildPage(_pages[index], index);
+                    },
+                  ),
+                ),
+                _buildBottomSection(),
+              ],
             ),
-            _buildBottomSection(),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildPage(OnboardingPage page) {
+  Widget _buildSkipButton() {
+    return Container(
+      alignment: Alignment.centerRight,
+      padding: const EdgeInsets.only(right: 20, top: 10),
+      child: CupertinoButton(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        onPressed: _completeOnboarding,
+        child: Text(
+          'Skip',
+          style: TextStyle(
+            color: IOSColors.systemGray,
+            fontSize: 16,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPage(OnboardingPage page, int index) {
+    switch (page.type) {
+      case OnboardingPageType.standard:
+        return _buildStandardPage(page);
+      case OnboardingPageType.gameModes:
+        return _buildGameModesPage(page);
+      case OnboardingPageType.themes:
+        return _buildThemesPage(page);
+      case OnboardingPageType.achievements:
+        return _buildAchievementsPage(page);
+    }
+  }
+
+  Widget _buildStandardPage(OnboardingPage page) {
     return Padding(
       padding: const EdgeInsets.all(40.0),
       child: Column(
@@ -171,6 +231,359 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
           const Spacer(),
         ],
       ),
+    );
+  }
+
+  Widget _buildGameModesPage(OnboardingPage page) {
+    return Padding(
+      padding: const EdgeInsets.all(30.0),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Spacer(),
+          Icon(page.icon, size: 60, color: page.color),
+          const SizedBox(height: 20),
+          Text(
+            page.title,
+            style: const TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+              color: CupertinoColors.black,
+              letterSpacing: -0.5,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            page.description,
+            style: TextStyle(
+              fontSize: 17,
+              color: IOSColors.systemGray,
+              height: 1.4,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 30),
+          _buildGameModesList(),
+          const Spacer(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGameModesList() {
+    final modes = [
+      {'icon': CupertinoIcons.square_grid_2x2, 'name': 'Classic', 'desc': 'Original 4×4'},
+      {'icon': CupertinoIcons.timer, 'name': 'Time Attack', 'desc': '3-minute challenge'},
+      {'icon': CupertinoIcons.cloud_sun, 'name': 'Zen Mode', 'desc': 'Relaxed gameplay'},
+    ];
+
+    return Column(
+      children: modes.map((mode) {
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: IOSColors.systemTeal.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  mode['icon'] as IconData,
+                  color: IOSColors.systemTeal,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      mode['name'] as String,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Text(
+                      mode['desc'] as String,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: IOSColors.systemGray,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildThemesPage(OnboardingPage page) {
+    return Padding(
+      padding: const EdgeInsets.all(30.0),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Spacer(),
+          Icon(page.icon, size: 60, color: page.color),
+          const SizedBox(height: 20),
+          Text(
+            page.title,
+            style: const TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+              color: CupertinoColors.black,
+              letterSpacing: -0.5,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            page.description,
+            style: TextStyle(
+              fontSize: 17,
+              color: IOSColors.systemGray,
+              height: 1.4,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 30),
+          _buildThemePreview(),
+          const Spacer(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildThemePreview() {
+    final themes = [
+      {'name': 'Classic', 'colors': [Colors.white, const Color(0xFFFFD60A), const Color(0xFFFF9F0A), const Color(0xFFFF6482)]},
+      {'name': 'Dark', 'colors': [const Color(0xFF2C2C2E), const Color(0xFF48484A), const Color(0xFF636366), const Color(0xFF8E8E93)]},
+      {'name': 'Ocean', 'colors': [const Color(0xFFE0F7FA), const Color(0xFF80DEEA), const Color(0xFF26C6DA), const Color(0xFF00ACC1)]},
+    ];
+
+    return Column(
+      children: themes.map((theme) {
+        final colors = theme['colors'] as List<Color>;
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  theme['name'] as String,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              Row(
+                children: colors.map((color) {
+                  return Container(
+                    width: 32,
+                    height: 32,
+                    margin: const EdgeInsets.only(left: 6),
+                    decoration: BoxDecoration(
+                      color: color,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: Colors.black.withOpacity(0.1),
+                        width: 1,
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildAchievementsPage(OnboardingPage page) {
+    return Padding(
+      padding: const EdgeInsets.all(30.0),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Spacer(),
+          Icon(page.icon, size: 60, color: page.color),
+          const SizedBox(height: 20),
+          Text(
+            page.title,
+            style: const TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+              color: CupertinoColors.black,
+              letterSpacing: -0.5,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            page.description,
+            style: TextStyle(
+              fontSize: 17,
+              color: IOSColors.systemGray,
+              height: 1.4,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 30),
+          _buildAchievementsList(),
+          const SizedBox(height: 20),
+          _buildAchievementStats(),
+          const Spacer(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAchievementsList() {
+    final achievementSamples = [
+      {'icon': CupertinoIcons.star_fill, 'name': 'First Win', 'desc': 'Reach the 2048 tile', 'color': IOSColors.systemYellow},
+      {'icon': CupertinoIcons.bolt_fill, 'name': 'Power Player', 'desc': 'Reach the 4096 tile', 'color': IOSColors.systemOrange},
+      {'icon': CupertinoIcons.speedometer, 'name': 'Efficient Player', 'desc': 'Win in under 200 moves', 'color': IOSColors.systemBlue},
+    ];
+
+    return Column(
+      children: achievementSamples.map((achievement) {
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: (achievement['color'] as Color).withOpacity(0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  achievement['icon'] as IconData,
+                  color: achievement['color'] as Color,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      achievement['name'] as String,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Text(
+                      achievement['desc'] as String,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: IOSColors.systemGray,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildAchievementStats() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [IOSColors.systemGreen.withOpacity(0.1), IOSColors.systemBlue.withOpacity(0.1)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _buildStatItem('14', 'Total\nAchievements'),
+          Container(width: 1, height: 40, color: IOSColors.systemGray5),
+          _buildStatItem('6', 'Unlock\nThemes'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatItem(String value, String label) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.bold,
+            color: CupertinoColors.black,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: IOSColors.systemGray,
+            height: 1.2,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ],
     );
   }
 
@@ -281,16 +694,25 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
   }
 }
 
+enum OnboardingPageType {
+  standard,
+  gameModes,
+  themes,
+  achievements,
+}
+
 class OnboardingPage {
   final IconData icon;
   final String title;
   final String description;
   final Color color;
+  final OnboardingPageType type;
 
   OnboardingPage({
     required this.icon,
     required this.title,
     required this.description,
     required this.color,
+    required this.type,
   });
 }
