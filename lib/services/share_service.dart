@@ -65,7 +65,35 @@ Playing F2048 - Join me!
     );
   }
 
-  // Share daily challenge result
+  // Share challenge result with stars
+  Future<void> shareChallengeResult({
+    required String challengeTitle,
+    required int score,
+    required int moves,
+    required int stars,
+    required bool completed,
+  }) async {
+    final statusEmoji = completed ? '✅' : '🎯';
+    final starsText = completed ? '⭐' * stars : '';
+
+    final message = '''
+$statusEmoji Daily Challenge: $challengeTitle
+
+${completed ? 'Completed! $starsText' : 'Attempted'}
+Score: ${_formatNumber(score)}
+Moves: $moves
+
+Can you beat my score?
+#F2048 #DailyChallenge
+''';
+
+    await Share.share(
+      message,
+      subject: 'F2048 Daily Challenge',
+    );
+  }
+
+  // Share daily challenge result (legacy)
   Future<void> shareDailyChallengeResult({
     required DateTime challengeDate,
     required int score,
