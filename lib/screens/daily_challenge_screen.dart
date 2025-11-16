@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:f2048/ios_theme.dart';
 import 'package:f2048/services/daily_challenge_service.dart';
 import 'package:f2048/models/daily_challenge.dart';
+import 'package:f2048/screens/daily_challenge_game_screen.dart';
 
 class DailyChallengeScreen extends StatefulWidget {
   const DailyChallengeScreen({Key? key}) : super(key: key);
@@ -299,24 +300,21 @@ class _DailyChallengeScreenState extends State<DailyChallengeScreen> {
   Widget _buildPlayButton() {
     return CupertinoButton(
       padding: EdgeInsets.zero,
-      onPressed: () {
-        // TODO: Navigate to challenge game mode
-        showCupertinoDialog(
-          context: context,
-          builder: (context) => CupertinoAlertDialog(
-            title: const Text('Daily Challenge'),
-            content: const Text(
-              'Daily challenge game mode will be implemented in a future update!',
+      onPressed: () async {
+        // Navigate to challenge game mode
+        final result = await Navigator.push(
+          context,
+          CupertinoPageRoute(
+            builder: (context) => DailyChallengeGameScreen(
+              challenge: _challenge!,
             ),
-            actions: [
-              CupertinoDialogAction(
-                isDefaultAction: true,
-                onPressed: () => Navigator.pop(context),
-                child: const Text('OK'),
-              ),
-            ],
           ),
         );
+
+        // Reload challenge data when returning (to update completion status)
+        if (result == true || result == null) {
+          _loadChallenge();
+        }
       },
       child: Container(
         height: 56,
