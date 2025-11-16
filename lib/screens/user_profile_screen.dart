@@ -113,7 +113,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       case PlayerRank.master:
         return CupertinoIcons.flame_fill;
       case PlayerRank.legend:
-        return CupertinoIcons.crown_fill;
+        return CupertinoIcons.star_fill;
     }
   }
 
@@ -395,7 +395,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             Expanded(
               child: _buildStatCard(
                 'High Score',
-                _profile!.highScore.toString(),
+                _profile!.highestScore.toString(),
                 CupertinoIcons.star_fill,
                 IOSColors.systemYellow,
               ),
@@ -404,7 +404,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             Expanded(
               child: _buildStatCard(
                 'Best Tile',
-                _profile!.bestTile.toString(),
+                _profile!.highestTile.toString(),
                 CupertinoIcons.flame_fill,
                 IOSColors.systemOrange,
               ),

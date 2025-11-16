@@ -86,7 +86,7 @@ final List<Achievement> achievements = [
     id: 'legend',
     title: 'Legend',
     description: 'Reach the 16384 tile',
-    icon: CupertinoIcons.crown_fill,
+    icon: CupertinoIcons.star_fill,
     category: AchievementCategory.milestone,
   ),
   Achievement(
@@ -140,7 +140,7 @@ final List<Achievement> achievements = [
     id: 'strategic_mind',
     title: 'Strategic Mind',
     description: 'Win 10 games in a row',
-    icon: CupertinoIcons.brain,
+    icon: CupertinoIcons.lightbulb,
     category: AchievementCategory.skill,
   ),
 

@@ -30,7 +30,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   Future<void> _loadLeaderboard() async {
     setState(() => _isLoading = true);
     try {
-      await LeaderboardService.instance.loadEntries();
+      await LeaderboardService.instance.loadLeaderboard();
       final profile = await UserProfileService.instance.loadProfile();
       _currentUserId = profile.userId;
 
@@ -449,7 +449,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      dateFormatter.format(entry.achievedAt),
+                      dateFormatter.format(entry.timestamp),
                       style: TextStyle(
                         fontSize: 12,
                         color: IOSColors.systemGray,

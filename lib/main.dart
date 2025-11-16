@@ -185,7 +185,7 @@ class TwentyFortyEightState extends State<TwentyFortyEight> with SingleTickerPro
     await ThemeService.instance.initialize();
     await PowerUpService.instance.loadInventory();
     await UserProfileService.instance.loadProfile();
-    await LeaderboardService.instance.loadEntries();
+    await LeaderboardService.instance.loadLeaderboard();
 
     // Set up achievement unlock listener
     AchievementService.instance.addUnlockListener(_onAchievementUnlocked);
@@ -318,7 +318,6 @@ class TwentyFortyEightState extends State<TwentyFortyEight> with SingleTickerPro
       score: score,
       bestTile: bestTile,
       moves: gameStates.length,
-      displayName: profile.displayName,
       gameMode: GameModeService.instance.currentMode,
     );
 

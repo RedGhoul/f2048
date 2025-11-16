@@ -91,7 +91,7 @@ class UserProfile {
       case PlayerRank.master:
         return CupertinoIcons.flame_fill;
       case PlayerRank.legend:
-        return CupertinoIcons.crown_fill;
+        return CupertinoIcons.star_fill;
     }
   }
 

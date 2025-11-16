@@ -85,7 +85,7 @@ final Map<GameMode, GameModeConfig> gameModeConfigs = {
     mode: GameMode.large,
     name: 'Large',
     description: 'Strategic 5x5 grid for longer games',
-    icon: CupertinoIcons.square_grid_4x3x2,
+    icon: CupertinoIcons.square_grid_3x2,
     gridSize: 5,
     winTile: 4096, // Higher win condition for larger grid
   ),

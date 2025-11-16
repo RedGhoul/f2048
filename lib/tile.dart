@@ -10,11 +10,11 @@ class Tile {
 
   int value;
 
-  Animation<double> animatedX;
-  Animation<double> animatedY;
-  Animation<double> size;
+  late Animation<double> animatedX;
+  late Animation<double> animatedY;
+  late Animation<double> size;
 
-  Animation<int> animatedValue;
+  late Animation<int> animatedValue;
 
   Tile(this.x, this.y, this.value) {
     resetAnimations();

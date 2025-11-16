@@ -88,7 +88,7 @@ Games: ${_formatNumber(stats.totalGamesPlayed)}
 Wins: ${_formatNumber(stats.totalWins)} ($winRate%)
 High Score: ${_formatNumber(stats.highScore)}
 Best Tile: ${stats.bestTile} ${_getTileEmoji(stats.bestTile)}
-Win Streak: ${stats.bestWinStreak}
+Win Streak: ${stats.longestWinStreak}
 
 Join me in F2048!
 #F2048 #PuzzleGame
