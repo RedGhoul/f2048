@@ -157,6 +157,7 @@ class TwentyFortyEightState extends State<TwentyFortyEight> with SingleTickerPro
 
   // Current theme
   GameTheme _currentTheme = gameThemes[ThemeType.defaultTheme]!;
+  bool _isReady = false;
 
   @override
   void initState() {
@@ -176,7 +177,12 @@ class TwentyFortyEightState extends State<TwentyFortyEight> with SingleTickerPro
       }
     });
 
-    _initializeServices();
+    _bootstrap();
+  }
+
+  Future<void> _bootstrap() async {
+    await _initializeServices();
+    if (!mounted) return;
     setupNewGame();
   }
 
@@ -197,6 +203,7 @@ class TwentyFortyEightState extends State<TwentyFortyEight> with SingleTickerPro
     final stats = StatisticsService.instance.statistics;
     final modeStats = GameModeService.instance.getStatsForMode(GameModeService.instance.currentMode);
 
+    if (!mounted) return;
     setState(() {
       _highScore = modeStats.highScore > 0 ? modeStats.highScore : stats.highScore;
       _currentTheme = ThemeService.instance.currentTheme;
@@ -253,7 +260,7 @@ class TwentyFortyEightState extends State<TwentyFortyEight> with SingleTickerPro
   void _checkGameOver() {
     if (_isGameOver()) {
       _endGame(false);
-    } else if (_hasWon()) {
+    } else if (GameModeService.instance.currentConfig.hasGameOver && _hasWon()) {
       _endGame(true);
     }
   }
@@ -401,6 +408,15 @@ class TwentyFortyEightState extends State<TwentyFortyEight> with SingleTickerPro
 
   @override
   Widget build(BuildContext context) {
+    if (!_isReady) {
+      return const Scaffold(
+        backgroundColor: IOSColors.systemBackground,
+        body: Center(
+          child: CupertinoActivityIndicator(),
+        ),
+      );
+    }
+
     final config = GameModeService.instance.currentConfig;
     double contentPadding = 20;
     double borderSize = 6;
@@ -945,6 +961,7 @@ class TwentyFortyEightState extends State<TwentyFortyEight> with SingleTickerPro
           });
         });
       }
+      _isReady = true;
     });
 
     HapticService.instance.onButtonPress();

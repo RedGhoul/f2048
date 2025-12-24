@@ -236,14 +236,16 @@ class _DailyChallengeScreenState extends State<DailyChallengeScreen> {
   }
 
   Widget _buildCompletedCard() {
-    final todaysResult = _streak!.completedChallenges.firstWhere(
-      (r) {
-        final now = DateTime.now();
-        return r.completedAt.year == now.year &&
-            r.completedAt.month == now.month &&
-            r.completedAt.day == now.day;
-      },
-    );
+    ChallengeResult? todaysResult;
+    final now = DateTime.now();
+    for (final result in _streak!.completedChallenges) {
+      if (result.completedAt.year == now.year &&
+          result.completedAt.month == now.month &&
+          result.completedAt.day == now.day) {
+        todaysResult = result;
+        break;
+      }
+    }
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -271,27 +273,29 @@ class _DailyChallengeScreenState extends State<DailyChallengeScreen> {
             ),
           ),
           const SizedBox(height: 8),
-          Text(
-            'Score: ${todaysResult.score} • Moves: ${todaysResult.moves}',
-            style: TextStyle(
-              fontSize: 16,
-              color: IOSColors.systemGray,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(
-              3,
-              (index) => Icon(
-                index < todaysResult.stars
-                    ? CupertinoIcons.star_fill
-                    : CupertinoIcons.star,
-                color: IOSColors.systemYellow,
-                size: 24,
+          if (todaysResult != null) ...[
+            Text(
+              'Score: ${todaysResult.score} • Moves: ${todaysResult.moves}',
+              style: TextStyle(
+                fontSize: 16,
+                color: IOSColors.systemGray,
               ),
             ),
-          ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(
+                3,
+                (index) => Icon(
+                  index < todaysResult!.stars
+                      ? CupertinoIcons.star_fill
+                      : CupertinoIcons.star,
+                  color: IOSColors.systemYellow,
+                  size: 24,
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );

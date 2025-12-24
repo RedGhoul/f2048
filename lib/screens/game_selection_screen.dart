@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:f2048/ios_theme.dart';
 import 'package:f2048/models/game_mode.dart';
 import 'package:f2048/models/game_statistics.dart';
+import 'package:f2048/screens/daily_challenge_screen.dart';
 import 'package:f2048/screens/game_mode_screen.dart';
 import 'package:f2048/services/game_mode_service.dart';
 import 'package:f2048/services/statistics_service.dart';
@@ -78,6 +79,8 @@ class _GameSelectionScreenState extends State<GameSelectionScreen> {
                       if (overallStats != null) _buildStatsOverview(overallStats, stats),
                       if (overallStats != null) const SizedBox(height: 16),
                       _buildSelectModeCard(),
+                      const SizedBox(height: 16),
+                      _buildDailyChallengeCard(),
                     ],
                   ),
                 ),
@@ -251,6 +254,58 @@ class _GameSelectionScreenState extends State<GameSelectionScreen> {
             ),
             const SizedBox(width: 16),
             const Expanded(child: Text('Select Game Mode', style: AppTextStyles.title)),
+            Icon(
+              CupertinoIcons.chevron_right,
+              color: IOSColors.systemGray3,
+              size: 20,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDailyChallengeCard() {
+    return CupertinoButton(
+      padding: EdgeInsets.zero,
+      onPressed: () {
+        Navigator.push(
+          context,
+          CupertinoPageRoute(builder: (context) => const DailyChallengeScreen()),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: AppDecorations.card(),
+        child: Row(
+          children: [
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: IOSColors.systemOrange.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Icon(
+                CupertinoIcons.calendar_today,
+                color: IOSColors.systemOrange,
+                size: 28,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Daily Challenge', style: AppTextStyles.title),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Complete today\'s unique puzzle.',
+                    style: AppTextStyles.body.copyWith(color: IOSColors.systemGray),
+                  ),
+                ],
+              ),
+            ),
             Icon(
               CupertinoIcons.chevron_right,
               color: IOSColors.systemGray3,
