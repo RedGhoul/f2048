@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
@@ -16,11 +17,13 @@ import 'package:f2048/services/game_mode_service.dart';
 import 'package:f2048/services/theme_service.dart';
 import 'package:f2048/services/power_up_service.dart';
 import 'package:f2048/services/share_service.dart';
+import 'package:f2048/services/settings_service.dart';
 import 'package:f2048/models/game_statistics.dart';
 import 'package:f2048/models/achievement.dart';
 import 'package:f2048/models/game_mode.dart';
 import 'package:f2048/models/theme.dart';
 import 'package:f2048/screens/main_menu_screen.dart';
+import 'package:f2048/screens/game_selection_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -45,7 +48,7 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
         scaffoldBackgroundColor: IOSColors.systemBackground,
-        fontFamily: '.SF Pro Text',
+        fontFamily: AppFonts.ui,
       ),
       home: const AppWrapper(),
     );
@@ -99,7 +102,7 @@ class _AppWrapperState extends State<AppWrapper> {
       return OnboardingScreen(onComplete: _completeOnboarding);
     }
 
-    return const TwentyFortyEight();
+    return GameSelectionScreen(gameBuilder: (context) => const TwentyFortyEight());
   }
 }
 
@@ -125,6 +128,7 @@ class TwentyFortyEight extends StatefulWidget {
 
 class TwentyFortyEightState extends State<TwentyFortyEight> with SingleTickerProviderStateMixin {
   late AnimationController controller;
+  final Random _rng = Random();
 
   List<List<Tile>> grid = [];
   List<GameState> gameStates = [];
@@ -144,6 +148,8 @@ class TwentyFortyEightState extends State<TwentyFortyEight> with SingleTickerPro
   bool _usedUndo = false;
   Set<int> _tilesReachedThisGame = {};
   int _highScore = 0;
+  bool _soundEnabled = true;
+  int _undoCount = 0;
 
   // Time Attack mode
   Timer? _gameTimer;
@@ -182,6 +188,7 @@ class TwentyFortyEightState extends State<TwentyFortyEight> with SingleTickerPro
     await GameModeService.instance.initialize();
     await ThemeService.instance.initialize();
     await PowerUpService.instance.loadInventory();
+    await SettingsService.instance.initialize();
 
     // Set up achievement unlock listener
     AchievementService.instance.addUnlockListener(_onAchievementUnlocked);
@@ -193,6 +200,7 @@ class TwentyFortyEightState extends State<TwentyFortyEight> with SingleTickerPro
     setState(() {
       _highScore = modeStats.highScore > 0 ? modeStats.highScore : stats.highScore;
       _currentTheme = ThemeService.instance.currentTheme;
+      _soundEnabled = SoundService.instance.isSoundEnabled;
     });
   }
 
@@ -357,6 +365,10 @@ class TwentyFortyEightState extends State<TwentyFortyEight> with SingleTickerPro
         actions: [
           CupertinoDialogAction(
             onPressed: () async {
+              final renderBox = context.findRenderObject();
+              final shareOrigin = renderBox is RenderBox
+                  ? renderBox.localToGlobal(Offset.zero) & renderBox.size
+                  : null;
               await ShareService.instance.shareGameResult(
                 score: record.score,
                 bestTile: record.bestTile,
@@ -364,6 +376,7 @@ class TwentyFortyEightState extends State<TwentyFortyEight> with SingleTickerPro
                 won: won,
                 gameMode: GameModeService.instance.currentMode,
                 timeTaken: config.hasTimer ? record.playTimeSeconds : null,
+                sharePositionOrigin: shareOrigin,
               );
             },
             child: const Text('Share'),
@@ -381,7 +394,10 @@ class TwentyFortyEightState extends State<TwentyFortyEight> with SingleTickerPro
     );
   }
 
-  int get score => gridTiles.fold(0, (sum, tile) => sum + tile.value);
+  int get score {
+    final baseScore = gridTiles.fold(0, (sum, tile) => sum + tile.value);
+    return (baseScore * _scoreMultiplierForDifficulty()).round();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -414,46 +430,36 @@ class TwentyFortyEightState extends State<TwentyFortyEight> with SingleTickerPro
 
     return Scaffold(
         backgroundColor: _currentTheme.backgroundColor,
-        body: SafeArea(
-          child: Column(
-            children: [
-              // iOS-style Navigation Bar
-              _buildNavigationBar(),
-              // Score Card (and Timer for Time Attack)
-              _buildScoreCard(),
-              const SizedBox(height: 20),
-              // Game Board
-              Expanded(
-                child: Center(
-                  child: Swiper(
-                      up: () => merge(SwipeDirection.up),
-                      down: () => merge(SwipeDirection.down),
-                      left: () => merge(SwipeDirection.left),
-                      right: () => merge(SwipeDirection.right),
-                      child: Container(
-                          height: boardSize,
-                          width: boardSize,
-                          padding: EdgeInsets.all(borderSize),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(16),
-                            color: _currentTheme.boardBackground,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.1),
-                                blurRadius: 20,
-                                offset: const Offset(0, 10),
-                              ),
-                            ],
-                          ),
-                          child: Stack(
-                            children: stackItems,
-                          ))),
+        body: AppBackground(
+          child: SafeArea(
+            child: Column(
+              children: [
+                _buildNavigationBar(),
+                _buildScoreCard(),
+                const SizedBox(height: 20),
+                Expanded(
+                  child: Center(
+                    child: Swiper(
+                        up: () => merge(SwipeDirection.up),
+                        down: () => merge(SwipeDirection.down),
+                        left: () => merge(SwipeDirection.left),
+                        right: () => merge(SwipeDirection.right),
+                        child: Container(
+                            height: boardSize,
+                            width: boardSize,
+                            padding: EdgeInsets.all(borderSize),
+                            decoration: AppDecorations.board(
+                              color: _currentTheme.boardBackground,
+                            ),
+                            child: Stack(
+                              children: stackItems,
+                            ))),
+                  ),
                 ),
-              ),
-              // Control Buttons
-              _buildControlButtons(),
-              const SizedBox(height: 20),
-            ],
+                _buildControlButtons(),
+                const SizedBox(height: 20),
+              ],
+            ),
           ),
         ));
   }
@@ -466,15 +472,66 @@ class TwentyFortyEightState extends State<TwentyFortyEight> with SingleTickerPro
         children: [
           const Text(
             '2048',
-            style: TextStyle(
-              fontSize: 34,
-              fontWeight: FontWeight.bold,
-              color: CupertinoColors.black,
-              letterSpacing: -1,
-            ),
+            style: AppTextStyles.displayXL,
           ),
           Row(
             children: [
+              CupertinoButton(
+                padding: EdgeInsets.zero,
+                onPressed: () {
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    CupertinoPageRoute(
+                      builder: (context) => GameSelectionScreen(
+                        gameBuilder: (context) => const TwentyFortyEight(),
+                      ),
+                    ),
+                    (route) => false,
+                  );
+                },
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: IOSColors.cloud100,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: IOSColors.cloud200.withOpacity(0.6)),
+                  ),
+                  child: const Icon(
+                    CupertinoIcons.house_fill,
+                    color: IOSColors.systemGray,
+                    size: 18,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              CupertinoButton(
+                padding: EdgeInsets.zero,
+                onPressed: () async {
+                  final nextState = !_soundEnabled;
+                  await SoundService.instance.setSoundEnabled(nextState);
+                  if (mounted) {
+                    setState(() {
+                      _soundEnabled = nextState;
+                    });
+                  }
+                },
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: IOSColors.cloud100,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: IOSColors.cloud200.withOpacity(0.6)),
+                  ),
+                  child: Icon(
+                    _soundEnabled ? CupertinoIcons.speaker_2_fill : CupertinoIcons.speaker_slash_fill,
+                    color: IOSColors.systemGray,
+                    size: 18,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
               CupertinoButton(
                 padding: EdgeInsets.zero,
                 onPressed: () async {
@@ -488,6 +545,7 @@ class TwentyFortyEightState extends State<TwentyFortyEight> with SingleTickerPro
                   if (result == true && mounted) {
                     setState(() {
                       _currentTheme = ThemeService.instance.currentTheme;
+                      _soundEnabled = SoundService.instance.isSoundEnabled;
                     });
                     setupNewGame();
                   }
@@ -496,8 +554,9 @@ class TwentyFortyEightState extends State<TwentyFortyEight> with SingleTickerPro
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: IOSColors.systemGray5,
+                    color: IOSColors.cloud100,
                     shape: BoxShape.circle,
+                    border: Border.all(color: IOSColors.cloud200.withOpacity(0.6)),
                   ),
                   child: const Icon(
                     CupertinoIcons.line_horizontal_3,
@@ -514,8 +573,9 @@ class TwentyFortyEightState extends State<TwentyFortyEight> with SingleTickerPro
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: IOSColors.systemGray5,
+                    color: IOSColors.cloud100,
                     shape: BoxShape.circle,
+                    border: Border.all(color: IOSColors.cloud200.withOpacity(0.6)),
                   ),
                   child: const Icon(
                     CupertinoIcons.info,
@@ -537,17 +597,7 @@ class TwentyFortyEightState extends State<TwentyFortyEight> with SingleTickerPro
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
+      decoration: AppDecorations.card(),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
@@ -563,14 +613,14 @@ class TwentyFortyEightState extends State<TwentyFortyEight> with SingleTickerPro
           Container(
             width: 1,
             height: 40,
-            color: IOSColors.systemGray5,
+            color: IOSColors.cloud200,
           ),
           _buildScoreItem('BEST', _highScore),
           if (!config.hasTimer) ...[
             Container(
               width: 1,
               height: 40,
-              color: IOSColors.systemGray5,
+              color: IOSColors.cloud200,
             ),
             _buildScoreItem('MOVES', gameStates.length),
           ],
@@ -590,27 +640,19 @@ class TwentyFortyEightState extends State<TwentyFortyEight> with SingleTickerPro
       children: [
         Text(
           label,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: IOSColors.systemGray,
-            letterSpacing: 0.5,
-          ),
+          style: AppTextStyles.caption.copyWith(letterSpacing: 0.5),
         ),
         const SizedBox(height: 6),
         Text(
           value.toString(),
-          style: const TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.bold,
-            color: CupertinoColors.black,
-          ),
+          style: AppTextStyles.displayL,
         ),
       ],
     );
   }
 
   Widget _buildControlButtons() {
+    final canUndo = gameStates.isNotEmpty && _undoCount < _undoLimitForDifficulty();
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
@@ -620,7 +662,7 @@ class TwentyFortyEightState extends State<TwentyFortyEight> with SingleTickerPro
               label: "Undo",
               icon: CupertinoIcons.arrow_uturn_left,
               color: IOSColors.systemBlue,
-              onPressed: gameStates.isEmpty ? null : undoMove,
+              onPressed: canUndo ? undoMove : null,
             ),
           ),
           const SizedBox(width: 12),
@@ -658,7 +700,8 @@ class TwentyFortyEightState extends State<TwentyFortyEight> with SingleTickerPro
 
   void undoMove() {
     final config = GameModeService.instance.currentConfig;
-    if (gameStates.isEmpty) return;
+    if (gameStates.isEmpty || _undoCount >= _undoLimitForDifficulty()) return;
+    _undoCount += 1;
 
     // In Zen mode, undo is always allowed
     // In other modes, we track that undo was used
@@ -787,8 +830,81 @@ class TwentyFortyEightState extends State<TwentyFortyEight> with SingleTickerPro
   void addNewTiles(List<int> values) {
     List<Tile> empty = gridTiles.where((t) => t.value == 0).toList();
     empty.shuffle();
+    final spawnCount = _spawnCountForDifficulty();
     for (int i = 0; i < values.length; i++) {
-      toAdd.add(Tile(empty[i].x, empty[i].y, values[i])..appear(controller));
+      final value = values[i] == 2 ? _rollNewTileValue() : values[i];
+      toAdd.add(Tile(empty[i].x, empty[i].y, value)..appear(controller));
+    }
+    if (spawnCount > values.length && empty.length > values.length) {
+      final extraValue = _rollNewTileValue();
+      final tile = empty[values.length];
+      toAdd.add(Tile(tile.x, tile.y, extraValue)..appear(controller));
+    }
+  }
+
+  int _rollNewTileValue() {
+    final difficulty = SettingsService.instance.difficulty;
+    final roll = _rng.nextDouble();
+    switch (difficulty) {
+      case DifficultyLevel.easy:
+        return roll < 0.1 ? 4 : 2;
+      case DifficultyLevel.hard:
+        return roll < 0.35 ? 4 : 2;
+      case DifficultyLevel.standard:
+      default:
+        return roll < 0.2 ? 4 : 2;
+    }
+  }
+
+  int _spawnCountForDifficulty() {
+    final difficulty = SettingsService.instance.difficulty;
+    switch (difficulty) {
+      case DifficultyLevel.easy:
+        return 1;
+      case DifficultyLevel.hard:
+        return 2;
+      case DifficultyLevel.standard:
+      default:
+        return 1;
+    }
+  }
+
+  int _undoLimitForDifficulty() {
+    final difficulty = SettingsService.instance.difficulty;
+    switch (difficulty) {
+      case DifficultyLevel.easy:
+        return 3;
+      case DifficultyLevel.hard:
+        return 0;
+      case DifficultyLevel.standard:
+      default:
+        return 1;
+    }
+  }
+
+  int _animationDurationMsForDifficulty() {
+    final difficulty = SettingsService.instance.difficulty;
+    switch (difficulty) {
+      case DifficultyLevel.easy:
+        return 220;
+      case DifficultyLevel.hard:
+        return 170;
+      case DifficultyLevel.standard:
+      default:
+        return 200;
+    }
+  }
+
+  double _scoreMultiplierForDifficulty() {
+    final difficulty = SettingsService.instance.difficulty;
+    switch (difficulty) {
+      case DifficultyLevel.easy:
+        return 0.9;
+      case DifficultyLevel.hard:
+        return 1.1;
+      case DifficultyLevel.standard:
+      default:
+        return 1.0;
     }
   }
 
@@ -796,6 +912,7 @@ class TwentyFortyEightState extends State<TwentyFortyEight> with SingleTickerPro
     final config = GameModeService.instance.currentConfig;
 
     setState(() {
+      controller.duration = Duration(milliseconds: _animationDurationMsForDifficulty());
       // Initialize grid with dynamic size
       grid = List.generate(gridSize, (y) => List.generate(gridSize, (x) => Tile(x, y, 0)));
 
@@ -805,12 +922,13 @@ class TwentyFortyEightState extends State<TwentyFortyEight> with SingleTickerPro
         t.resetAnimations();
       });
       toAdd.clear();
-      addNewTiles([2, 2]);
+      addNewTiles(_initialTileValues());
       controller.forward(from: 0);
 
       // Reset game session tracking
       _gameStartTime = DateTime.now();
       _usedUndo = false;
+      _undoCount = 0;
       _tilesReachedThisGame = {2};
 
       // Set up timer for Time Attack mode
@@ -831,6 +949,19 @@ class TwentyFortyEightState extends State<TwentyFortyEight> with SingleTickerPro
 
     HapticService.instance.onButtonPress();
     SoundService.instance.playSound(SoundEffect.buttonClick);
+  }
+
+  List<int> _initialTileValues() {
+    final difficulty = SettingsService.instance.difficulty;
+    switch (difficulty) {
+      case DifficultyLevel.easy:
+        return [2, 2, 2];
+      case DifficultyLevel.hard:
+        return [2, 4];
+      case DifficultyLevel.standard:
+      default:
+        return [2, 2];
+    }
   }
 
   @override

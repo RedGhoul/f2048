@@ -96,26 +96,28 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
       backgroundColor: IOSColors.systemBackground,
-      child: SafeArea(
-        child: Stack(
-          children: [
-            Column(
-              children: [
-                _buildSkipButton(),
-                Expanded(
-                  child: PageView.builder(
-                    controller: _pageController,
-                    onPageChanged: _onPageChanged,
-                    itemCount: _pages.length,
-                    itemBuilder: (context, index) {
-                      return _buildPage(_pages[index], index);
-                    },
+      child: AppBackground(
+        child: SafeArea(
+          child: Stack(
+            children: [
+              Column(
+                children: [
+                  _buildSkipButton(),
+                  Expanded(
+                    child: PageView.builder(
+                      controller: _pageController,
+                      onPageChanged: _onPageChanged,
+                      itemCount: _pages.length,
+                      itemBuilder: (context, index) {
+                        return _buildPage(_pages[index], index);
+                      },
+                    ),
                   ),
-                ),
-                _buildBottomSection(),
-              ],
-            ),
-          ],
+                  _buildBottomSection(),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -130,10 +132,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
         onPressed: _completeOnboarding,
         child: Text(
           'Skip',
-          style: TextStyle(
-            color: IOSColors.systemGray,
-            fontSize: 16,
-          ),
+          style: AppTextStyles.body.copyWith(color: IOSColors.systemGray),
         ),
       ),
     );
@@ -207,22 +206,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
               children: [
                 Text(
                   page.title,
-                  style: const TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: CupertinoColors.black,
-                    letterSpacing: -0.5,
-                  ),
+                  style: AppTextStyles.displayL,
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 20),
                 Text(
                   page.description,
-                  style: TextStyle(
-                    fontSize: 17,
-                    color: IOSColors.systemGray,
-                    height: 1.4,
-                  ),
+                  style: AppTextStyles.body.copyWith(color: IOSColors.systemGray, height: 1.4),
                   textAlign: TextAlign.center,
                 ),
               ],
@@ -245,22 +235,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
           const SizedBox(height: 20),
           Text(
             page.title,
-            style: const TextStyle(
-              fontSize: 32,
-              fontWeight: FontWeight.bold,
-              color: CupertinoColors.black,
-              letterSpacing: -0.5,
-            ),
+            style: AppTextStyles.displayL,
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 12),
           Text(
             page.description,
-            style: TextStyle(
-              fontSize: 17,
-              color: IOSColors.systemGray,
-              height: 1.4,
-            ),
+            style: AppTextStyles.body.copyWith(color: IOSColors.systemGray, height: 1.4),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 30),
@@ -283,17 +264,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
         return Container(
           margin: const EdgeInsets.only(bottom: 12),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
+          decoration: AppDecorations.card(color: IOSColors.cloud050),
           child: Row(
             children: [
               Container(
@@ -301,7 +272,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
                 height: 40,
                 decoration: BoxDecoration(
                   color: IOSColors.systemTeal.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
                   mode['icon'] as IconData,
@@ -316,17 +287,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
                   children: [
                     Text(
                       mode['name'] as String,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
+                      style: AppTextStyles.body,
                     ),
                     Text(
                       mode['desc'] as String,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: IOSColors.systemGray,
-                      ),
+                      style: AppTextStyles.caption,
                     ),
                   ],
                 ),
@@ -349,22 +314,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
           const SizedBox(height: 20),
           Text(
             page.title,
-            style: const TextStyle(
-              fontSize: 32,
-              fontWeight: FontWeight.bold,
-              color: CupertinoColors.black,
-              letterSpacing: -0.5,
-            ),
+            style: AppTextStyles.displayL,
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 12),
           Text(
             page.description,
-            style: TextStyle(
-              fontSize: 17,
-              color: IOSColors.systemGray,
-              height: 1.4,
-            ),
+            style: AppTextStyles.body.copyWith(color: IOSColors.systemGray, height: 1.4),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 30),
@@ -388,26 +344,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
         return Container(
           margin: const EdgeInsets.only(bottom: 12),
           padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
+          decoration: AppDecorations.card(color: IOSColors.cloud050),
           child: Row(
             children: [
               Expanded(
                 child: Text(
                   theme['name'] as String,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: AppTextStyles.body,
                 ),
               ),
               Row(
@@ -435,41 +378,37 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
   }
 
   Widget _buildAchievementsPage(OnboardingPage page) {
-    return Padding(
-      padding: const EdgeInsets.all(30.0),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Spacer(),
-          Icon(page.icon, size: 60, color: page.color),
-          const SizedBox(height: 20),
-          Text(
-            page.title,
-            style: const TextStyle(
-              fontSize: 32,
-              fontWeight: FontWeight.bold,
-              color: CupertinoColors.black,
-              letterSpacing: -0.5,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(30.0),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(page.icon, size: 60, color: page.color),
+                const SizedBox(height: 20),
+                Text(
+                  page.title,
+                  style: AppTextStyles.displayL,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  page.description,
+                  style: AppTextStyles.body.copyWith(color: IOSColors.systemGray, height: 1.4),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 30),
+                _buildAchievementsList(),
+                const SizedBox(height: 20),
+                _buildAchievementStats(),
+              ],
             ),
-            textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 12),
-          Text(
-            page.description,
-            style: TextStyle(
-              fontSize: 17,
-              color: IOSColors.systemGray,
-              height: 1.4,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 30),
-          _buildAchievementsList(),
-          const SizedBox(height: 20),
-          _buildAchievementStats(),
-          const Spacer(),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -485,17 +424,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
         return Container(
           margin: const EdgeInsets.only(bottom: 12),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
+          decoration: AppDecorations.card(color: IOSColors.cloud050),
           child: Row(
             children: [
               Container(
@@ -518,17 +447,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
                   children: [
                     Text(
                       achievement['name'] as String,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                      ),
+                      style: AppTextStyles.body,
                     ),
                     Text(
                       achievement['desc'] as String,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: IOSColors.systemGray,
-                      ),
+                      style: AppTextStyles.caption,
                     ),
                   ],
                 ),

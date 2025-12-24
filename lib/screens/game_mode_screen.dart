@@ -27,7 +27,7 @@ class _GameModeScreenState extends State<GameModeScreen> {
       navigationBar: CupertinoNavigationBar(
         backgroundColor: IOSColors.systemBackground,
         border: null,
-        middle: const Text('Game Mode'),
+        middle: const Text('Game Mode', style: AppTextStyles.title),
         trailing: CupertinoButton(
           padding: EdgeInsets.zero,
           onPressed: () async {
@@ -36,28 +36,30 @@ class _GameModeScreenState extends State<GameModeScreen> {
               Navigator.pop(context, true); // Return true to indicate mode changed
             }
           },
-          child: const Text('Done'),
+          child: const Text('Done', style: AppTextStyles.body),
         ),
       ),
-      child: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(20),
-          children: [
-            const SizedBox(height: 10),
-            _buildSectionTitle('Board Size'),
-            _buildModeCard(GameMode.mini),
-            const SizedBox(height: 12),
-            _buildModeCard(GameMode.classic),
-            const SizedBox(height: 12),
-            _buildModeCard(GameMode.large),
-            const SizedBox(height: 12),
-            _buildModeCard(GameMode.giant),
-            const SizedBox(height: 24),
-            _buildSectionTitle('Special Modes'),
-            _buildModeCard(GameMode.timeAttack),
-            const SizedBox(height: 12),
-            _buildModeCard(GameMode.zen),
-          ],
+      child: AppBackground(
+        child: SafeArea(
+          child: ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
+              const SizedBox(height: 10),
+              _buildSectionTitle('Board Size'),
+              _buildModeCard(GameMode.mini),
+              const SizedBox(height: 12),
+              _buildModeCard(GameMode.classic),
+              const SizedBox(height: 12),
+              _buildModeCard(GameMode.large),
+              const SizedBox(height: 12),
+              _buildModeCard(GameMode.giant),
+              const SizedBox(height: 24),
+              _buildSectionTitle('Special Modes'),
+              _buildModeCard(GameMode.timeAttack),
+              const SizedBox(height: 12),
+              _buildModeCard(GameMode.zen),
+            ],
+          ),
         ),
       ),
     );
@@ -68,12 +70,7 @@ class _GameModeScreenState extends State<GameModeScreen> {
       padding: const EdgeInsets.only(left: 4, bottom: 12),
       child: Text(
         title.toUpperCase(),
-        style: TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-          color: IOSColors.systemGray,
-          letterSpacing: 0.5,
-        ),
+        style: AppTextStyles.caption.copyWith(letterSpacing: 0.5),
       ),
     );
   }
@@ -92,19 +89,10 @@ class _GameModeScreenState extends State<GameModeScreen> {
       },
       child: Container(
         padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
+        decoration: AppDecorations.card().copyWith(
           border: isSelected
               ? Border.all(color: IOSColors.systemBlue, width: 2)
-              : null,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
+              : Border.all(color: IOSColors.cloud200.withOpacity(0.6)),
         ),
         child: Row(
           children: [
@@ -115,7 +103,7 @@ class _GameModeScreenState extends State<GameModeScreen> {
                 color: isSelected
                     ? IOSColors.systemBlue.withOpacity(0.15)
                     : IOSColors.systemGray6,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(14),
               ),
               child: Icon(
                 config.icon,

@@ -37,22 +37,24 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
       navigationBar: CupertinoNavigationBar(
         backgroundColor: IOSColors.systemBackground,
         border: null,
-        middle: const Text('Statistics'),
+        middle: const Text('Statistics', style: AppTextStyles.title),
       ),
       child: _isLoading
           ? const Center(child: CupertinoActivityIndicator())
-          : SafeArea(
-              child: ListView(
-                padding: const EdgeInsets.all(20),
-                children: [
-                  _buildOverviewCard(),
-                  const SizedBox(height: 20),
-                  _buildStreaksCard(),
-                  const SizedBox(height: 20),
-                  _buildProgressCard(),
-                  const SizedBox(height: 20),
-                  _buildRecentGamesCard(),
-                ],
+          : AppBackground(
+              child: SafeArea(
+                child: ListView(
+                  padding: const EdgeInsets.all(20),
+                  children: [
+                    _buildOverviewCard(),
+                    const SizedBox(height: 20),
+                    _buildStreaksCard(),
+                    const SizedBox(height: 20),
+                    _buildProgressCard(),
+                    const SizedBox(height: 20),
+                    _buildRecentGamesCard(),
+                  ],
+                ),
               ),
             ),
     );
@@ -61,27 +63,11 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
   Widget _buildOverviewCard() {
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
+      decoration: AppDecorations.card(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Overview',
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+          const Text('Overview', style: AppTextStyles.title),
           const SizedBox(height: 20),
           Row(
             children: [
@@ -172,27 +158,11 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
   Widget _buildStreaksCard() {
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
+      decoration: AppDecorations.card(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Streaks',
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+          const Text('Streaks', style: AppTextStyles.title),
           const SizedBox(height: 20),
           Row(
             children: [
@@ -223,24 +193,22 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: IOSColors.cloud200.withOpacity(0.6)),
       ),
       child: Column(
         children: [
           Text(
             value,
             style: TextStyle(
-              fontSize: 32,
-              fontWeight: FontWeight.bold,
+              fontSize: 28,
+              fontWeight: FontWeight.w600,
               color: color,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             label,
-            style: TextStyle(
-              fontSize: 13,
-              color: IOSColors.systemGray,
-            ),
+            style: AppTextStyles.caption,
             textAlign: TextAlign.center,
           ),
         ],
@@ -251,27 +219,11 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
   Widget _buildProgressCard() {
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
+      decoration: AppDecorations.card(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Progress',
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+          const Text('Progress', style: AppTextStyles.title),
           const SizedBox(height: 20),
           _buildProgressItem('Total Moves', _stats!.totalMoves),
           const SizedBox(height: 12),
@@ -298,14 +250,11 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
       children: [
         Text(
           label,
-          style: const TextStyle(fontSize: 16),
+          style: AppTextStyles.body,
         ),
         Text(
           displayValue,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
+          style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600),
         ),
       ],
     );
@@ -318,27 +267,11 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
 
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
+      decoration: AppDecorations.card(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Recent Games',
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+          const Text('Recent Games', style: AppTextStyles.title),
           const SizedBox(height: 16),
           ..._stats!.recentGames.take(5).map((game) => _buildGameItem(game)),
         ],
@@ -351,8 +284,9 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: IOSColors.systemGray6,
+        color: IOSColors.cloud100,
         borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: IOSColors.cloud200.withOpacity(0.6)),
       ),
       child: Row(
         children: [
@@ -368,14 +302,11 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
               children: [
                 Text(
                   'Score: ${game.score}',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600),
                 ),
                 Text(
                   'Moves: ${game.moves} • Tile: ${game.bestTile}',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: IOSColors.systemGray,
-                  ),
+                  style: AppTextStyles.caption,
                 ),
               ],
             ),

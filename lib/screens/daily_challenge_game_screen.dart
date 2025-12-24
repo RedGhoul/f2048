@@ -252,12 +252,17 @@ class _DailyChallengeGameScreenState extends State<DailyChallengeGameScreen> wit
         actions: [
           CupertinoDialogAction(
             onPressed: () async {
+              final renderBox = context.findRenderObject();
+              final shareOrigin = renderBox is RenderBox
+                  ? renderBox.localToGlobal(Offset.zero) & renderBox.size
+                  : null;
               await ShareService.instance.shareChallengeResult(
                 challengeTitle: widget.challenge.title,
                 score: result.score,
                 moves: result.moves,
                 stars: result.stars,
                 completed: result.completed,
+                sharePositionOrigin: shareOrigin,
               );
             },
             child: const Text('Share'),
@@ -578,72 +583,73 @@ class _DailyChallengeGameScreenState extends State<DailyChallengeGameScreen> wit
         break;
     }
 
+    List<List<Tile>> gridBeforeSwipe = grid.map((row) => row.map((tile) => tile.copy()).toList()).toList();
     setState(() {
       if (mergeFn()) {
         // Save state for potential undo (though not used in challenges)
-        gameStates.add(GameState(grid, direction));
+        gameStates.add(GameState(gridBeforeSwipe, direction));
         addNewTiles([2]);
         controller.forward(from: 0);
-        SoundService.instance.playSound(SoundEffect.merge);
-        HapticService.instance.onTileMove();
+
+        // Play sound and haptic feedback
+        HapticService.instance.onTileSlide();
+        SoundService.instance.playSound(SoundEffect.tileSlide);
+
+        // Track tiles reached
+        for (var tile in gridTiles) {
+          if (tile.value > 0) {
+            _tilesReachedThisGame.add(tile.value);
+          }
+        }
       }
     });
   }
 
-  bool mergeLeft() => grid.map((e) => mergeList(e)).toList().any((e) => e);
-  bool mergeRight() => grid.map((e) => mergeList(e.reversed.toList())).toList().any((e) => e);
-  bool mergeUp() => gridCols.map((e) => mergeList(e)).toList().any((e) => e);
-  bool mergeDown() => gridCols.map((e) => mergeList(e.reversed.toList())).toList().any((e) => e);
+  bool mergeLeft() => grid.map((e) => mergeTiles(e)).toList().any((e) => e);
+  bool mergeRight() => grid.map((e) => mergeTiles(e.reversed.toList())).toList().any((e) => e);
+  bool mergeUp() => gridCols.map((e) => mergeTiles(e)).toList().any((e) => e);
+  bool mergeDown() => gridCols.map((e) => mergeTiles(e.reversed.toList())).toList().any((e) => e);
 
-  bool mergeList(List<Tile> tiles) {
-    bool changed = false;
+  bool mergeTiles(List<Tile> tiles) {
+    bool didChange = false;
+    bool didMerge = false;
     for (int i = 0; i < tiles.length; i++) {
       for (int j = i; j < tiles.length; j++) {
         if (tiles[j].value != 0) {
-          Tile mergeTile = tiles
-              .skip(j + 1)
-              .firstWhere((t) => t.value != 0, orElse: () => Tile(0, 0, 0));
-          if (mergeTile.value != 0 && mergeTile.value != tiles[j].value) {
-            break;
+          Tile? mergeTile;
+          try {
+            mergeTile = tiles.skip(j + 1).firstWhere((t) => t.value != 0);
+          } catch (e) {
+            mergeTile = null;
           }
-          if (tiles[i].value == 0) {
-            tiles[i].value = tiles[j].value;
-            tiles[j].value = 0;
-            tiles[i].moveTo(controller, tiles[j]);
-            changed = true;
-          } else {
-            if (tiles[i].value != tiles[j].value) {
-              if (i + 1 == j) {
-                break;
-              }
-              tiles[i + 1].value = tiles[j].value;
-              tiles[j].value = 0;
-              tiles[i + 1].moveTo(controller, tiles[j]);
-              changed = true;
-            } else {
-              tiles[i].value = tiles[i].value + tiles[j].value;
-              tiles[j].value = 0;
-              tiles[i].bounce(controller);
-              tiles[i].moveTo(controller, tiles[j], merge: true);
-              changed = true;
+          if (mergeTile != null && mergeTile.value != tiles[j].value) {
+            mergeTile = null;
+          }
+          if (i != j || mergeTile != null) {
+            didChange = true;
+            int resultValue = tiles[j].value;
+            tiles[j].moveTo(controller, tiles[i].x, tiles[i].y);
+            if (mergeTile != null) {
+              didMerge = true;
+              resultValue += mergeTile.value;
+              mergeTile.moveTo(controller, tiles[i].x, tiles[i].y);
+              mergeTile.bounce(controller);
+              mergeTile.changeNumber(controller, resultValue);
+              mergeTile.value = 0;
+              tiles[j].changeNumber(controller, 0);
 
-              // Track tiles reached
-              _tilesReachedThisGame.add(tiles[i].value);
-
-              if (i + 1 < tiles.length) {
-                tiles[i + 1].value = mergeTile.value;
-                mergeTile.value = 0;
-                if (tiles[i + 1].value != 0) {
-                  tiles[i + 1].moveTo(controller, mergeTile);
-                }
-              }
-              break;
+              // Play merge sound with pitch based on tile value
+              SoundService.instance.playMergeSound(resultValue);
+              HapticService.instance.onTileMerge();
             }
+            tiles[j].value = 0;
+            tiles[i].value = resultValue;
           }
+          break;
         }
       }
     }
-    return changed;
+    return didChange;
   }
 
   void addNewTiles(List<int> values) {

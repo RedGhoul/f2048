@@ -35,8 +35,8 @@ class Tile {
 
   void bounce(Animation<double> parent) {
     size = TweenSequence([
-      TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.2), weight: 1.0),
-      TweenSequenceItem(tween: Tween(begin: 1.2, end: 1.0), weight: 1.0),
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.08), weight: 1.0),
+      TweenSequenceItem(tween: Tween(begin: 1.08, end: 1.0), weight: 1.0),
     ]).animate(CurvedAnimation(parent: parent, curve: Interval(moveInterval, 1.0)));
   }
 
@@ -80,17 +80,10 @@ class TileWidget extends StatelessWidget {
                   width: size,
                   height: size,
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(AppRadii.tile),
                     color: color,
-                    boxShadow: color != IOSColors.tileEmpty
-                        ? [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
-                              blurRadius: 4,
-                              offset: const Offset(0, 2),
-                            ),
-                          ]
-                        : null,
+                    border: Border.all(color: IOSColors.edgeLight),
+                    boxShadow: color != IOSColors.tileEmpty ? AppShadows.tile : null,
                   ),
                   child: child))));
 }
@@ -102,13 +95,40 @@ class TileNumber extends StatelessWidget {
   const TileNumber(this.val, {Key? key, this.textColor}) : super(key: key);
 
   @override
-  Widget build(BuildContext context) => Text("$val",
-      style: TextStyle(
-        color: textColor ?? iosTileTextColors[val] ?? Colors.white,
-        fontSize: val > 512 ? 28 : 35,
-        fontWeight: FontWeight.w900,
-        letterSpacing: -0.5,
-      ));
+  Widget build(BuildContext context) {
+    double baseFontSize;
+    if (val >= 2048) {
+      baseFontSize = 24;
+    } else if (val >= 512) {
+      baseFontSize = 28;
+    } else if (val >= 128) {
+      baseFontSize = 32;
+    } else {
+      baseFontSize = 36;
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final padding = constraints.biggest.shortestSide * 0.08;
+        return Padding(
+          padding: EdgeInsets.symmetric(horizontal: padding),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              "$val",
+              style: TextStyle(
+                color: textColor ?? iosTileTextColors[val] ?? Colors.white,
+                fontSize: baseFontSize,
+                fontWeight: FontWeight.w600,
+                fontFamily: AppFonts.display,
+                letterSpacing: -0.2,
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
 }
 
 class IOSButton extends StatelessWidget {
@@ -132,33 +152,27 @@ class IOSButton extends StatelessWidget {
         child: Container(
           height: 56,
           decoration: BoxDecoration(
-            color: onPressed == null ? IOSColors.systemGray4 : color,
-            borderRadius: BorderRadius.circular(14),
-            boxShadow: onPressed != null
-                ? [
-                    BoxShadow(
-                      color: color.withOpacity(0.3),
-                      blurRadius: 12,
-                      offset: const Offset(0, 6),
-                    ),
-                  ]
-                : null,
+            color: onPressed == null ? IOSColors.systemGray4 : null,
+            borderRadius: BorderRadius.circular(AppRadii.button),
+            gradient: onPressed != null ? AppGradients.primaryButton : null,
+            boxShadow: onPressed != null ? AppShadows.card : null,
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
                 icon,
-                color: Colors.white,
+                color: IOSColors.ink900,
                 size: 20,
               ),
               const SizedBox(width: 8),
               Text(
                 label,
                 style: const TextStyle(
-                  color: Colors.white,
+                  color: IOSColors.ink900,
                   fontSize: 17,
                   fontWeight: FontWeight.w600,
+                  fontFamily: AppFonts.ui,
                 ),
               ),
             ],

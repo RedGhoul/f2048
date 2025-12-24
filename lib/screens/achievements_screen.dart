@@ -38,21 +38,23 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
       navigationBar: CupertinoNavigationBar(
         backgroundColor: IOSColors.systemBackground,
         border: null,
-        middle: const Text('Achievements'),
+        middle: const Text('Achievements', style: AppTextStyles.title),
       ),
       child: _isLoading
           ? const Center(child: CupertinoActivityIndicator())
-          : SafeArea(
-              child: Column(
-                children: [
-                  _buildCategorySelector(),
-                  Expanded(
-                    child: ListView(
-                      padding: const EdgeInsets.all(20),
-                      children: _buildAchievementsList(),
+          : AppBackground(
+              child: SafeArea(
+                child: Column(
+                  children: [
+                    _buildCategorySelector(),
+                    Expanded(
+                      child: ListView(
+                        padding: const EdgeInsets.all(20),
+                        children: _buildAchievementsList(),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
     );
@@ -63,8 +65,8 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       child: CupertinoSlidingSegmentedControl<AchievementCategory>(
         groupValue: _selectedCategory,
-        backgroundColor: IOSColors.systemGray6,
-        thumbColor: Colors.white,
+        backgroundColor: IOSColors.cloud100,
+        thumbColor: IOSColors.cloud050,
         children: {
           AchievementCategory.milestone: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -105,6 +107,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
         decoration: BoxDecoration(
           color: IOSColors.systemBlue.withOpacity(0.1),
           borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: IOSColors.cloud200.withOpacity(0.6)),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -113,10 +116,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
             const SizedBox(width: 8),
             Text(
               '$unlocked / ${filteredAchievements.length} Unlocked',
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: AppTextStyles.title,
             ),
           ],
         ),
@@ -130,17 +130,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
   Widget _buildAchievementCard(Achievement achievement, AchievementProgress progress) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
+      decoration: AppDecorations.card(),
       child: CupertinoButton(
         padding: EdgeInsets.zero,
         onPressed: progress.isUnlocked

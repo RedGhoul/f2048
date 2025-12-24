@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:share_plus/share_plus.dart';
 import 'package:f2048/models/game_statistics.dart';
 import 'package:f2048/models/game_mode.dart';
@@ -20,6 +22,7 @@ class ShareService {
     required bool won,
     required GameMode gameMode,
     int? timeTaken,
+    Rect? sharePositionOrigin,
   }) async {
     final modeText = _getModeName(gameMode);
     final tileEmoji = _getTileEmoji(bestTile);
@@ -41,6 +44,7 @@ ${won ? 'I reached $bestTile in F2048! 🎉' : 'Playing F2048! Can you beat my s
     await Share.share(
       message,
       subject: 'My F2048 Score',
+      sharePositionOrigin: sharePositionOrigin,
     );
   }
 
@@ -72,6 +76,7 @@ Playing F2048 - Join me!
     required int moves,
     required int stars,
     required bool completed,
+    Rect? sharePositionOrigin,
   }) async {
     final statusEmoji = completed ? '✅' : '🎯';
     final starsText = completed ? '⭐' * stars : '';
@@ -90,6 +95,7 @@ Can you beat my score?
     await Share.share(
       message,
       subject: 'F2048 Daily Challenge',
+      sharePositionOrigin: sharePositionOrigin,
     );
   }
 
@@ -100,6 +106,7 @@ Can you beat my score?
     required int moves,
     required bool completed,
     required int bestTile,
+    Rect? sharePositionOrigin,
   }) async {
     final dateStr = '${challengeDate.month}/${challengeDate.day}/${challengeDate.year}';
     final statusEmoji = completed ? '✅' : '🎯';
@@ -119,6 +126,7 @@ Can you beat my score?
     await Share.share(
       message,
       subject: 'F2048 Daily Challenge',
+      sharePositionOrigin: sharePositionOrigin,
     );
   }
 

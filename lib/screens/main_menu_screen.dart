@@ -18,114 +18,119 @@ class MainMenuScreen extends StatelessWidget {
       navigationBar: CupertinoNavigationBar(
         backgroundColor: IOSColors.systemBackground,
         border: null,
-        middle: const Text('Menu'),
+        middle: const Text('Menu', style: AppTextStyles.title),
         trailing: CupertinoButton(
           padding: EdgeInsets.zero,
           onPressed: () => Navigator.pop(context),
-          child: const Text('Done'),
+          child: const Text('Done', style: AppTextStyles.body),
         ),
       ),
-      child: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(20),
-          children: [
-            const SizedBox(height: 20),
-            _buildMenuCard(
-              context,
-              'Game Mode',
-              'Choose your preferred game mode',
-              CupertinoIcons.game_controller_solid,
-              IOSColors.systemPurple,
-              () async {
-                final result = await Navigator.push(
+      child: AppBackground(
+        child: SafeArea(
+          child: ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
+              const SizedBox(height: 20),
+              _buildMenuCard(
+                context,
+                'Game Mode',
+                'Choose your preferred game mode',
+                CupertinoIcons.game_controller_solid,
+                IOSColors.systemPurple,
+                () async {
+                  final result = await Navigator.push(
+                    context,
+                    CupertinoPageRoute(
+                      builder: (context) => const GameModeScreen(),
+                    ),
+                  );
+                  if (result == true && context.mounted) {
+                    Navigator.pop(context, result);
+                  }
+                },
+              ),
+              const SizedBox(height: 16),
+              _buildMenuCard(
+                context,
+                'Themes',
+                'Customize your board appearance',
+                CupertinoIcons.paintbrush_fill,
+                IOSColors.systemPink,
+                () async {
+                  final result = await Navigator.push(
+                    context,
+                    CupertinoPageRoute(
+                      builder: (context) => const ThemeSelectionScreen(),
+                    ),
+                  );
+                  if (result == true && context.mounted) {
+                    Navigator.pop(context, result);
+                  }
+                },
+              ),
+              const SizedBox(height: 16),
+              _buildMenuCard(
+                context,
+                'Daily Challenge',
+                'Complete today\'s unique puzzle',
+                CupertinoIcons.calendar_today,
+                IOSColors.systemOrange,
+                () => Navigator.push(
                   context,
                   CupertinoPageRoute(
-                    builder: (context) => const GameModeScreen(),
+                    builder: (context) => const DailyChallengeScreen(),
                   ),
-                );
-                // If mode changed, pop with result to refresh game
-                if (result == true && context.mounted) {
-                  Navigator.pop(context, result);
-                }
-              },
-            ),
-            const SizedBox(height: 16),
-            _buildMenuCard(
-              context,
-              'Themes',
-              'Customize your board appearance',
-              CupertinoIcons.paintbrush_fill,
-              IOSColors.systemPink,
-              () async {
-                final result = await Navigator.push(
+                ),
+              ),
+              const SizedBox(height: 16),
+              _buildMenuCard(
+                context,
+                'Statistics',
+                'View your game statistics',
+                CupertinoIcons.chart_bar_fill,
+                IOSColors.systemBlue,
+                () => Navigator.push(
                   context,
                   CupertinoPageRoute(
-                    builder: (context) => const ThemeSelectionScreen(),
+                    builder: (context) => const StatisticsScreen(),
                   ),
-                );
-                // If theme changed, pop with result to refresh game
-                if (result == true && context.mounted) {
-                  Navigator.pop(context, result);
-                }
-              },
-            ),
-            const SizedBox(height: 16),
-            _buildMenuCard(
-              context,
-              'Daily Challenge',
-              'Complete today\'s unique puzzle',
-              CupertinoIcons.calendar_today,
-              IOSColors.systemOrange,
-              () => Navigator.push(
-                context,
-                CupertinoPageRoute(
-                  builder: (context) => const DailyChallengeScreen(),
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-            _buildMenuCard(
-              context,
-              'Statistics',
-              'View your game statistics',
-              CupertinoIcons.chart_bar_fill,
-              IOSColors.systemBlue,
-              () => Navigator.push(
+              const SizedBox(height: 16),
+              _buildMenuCard(
                 context,
-                CupertinoPageRoute(
-                  builder: (context) => const StatisticsScreen(),
+                'Achievements',
+                'Track your accomplishments',
+                CupertinoIcons.star_fill,
+                IOSColors.systemYellow,
+                () => Navigator.push(
+                  context,
+                  CupertinoPageRoute(
+                    builder: (context) => const AchievementsScreen(),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-            _buildMenuCard(
-              context,
-              'Achievements',
-              'Track your accomplishments',
-              CupertinoIcons.star_fill,
-              IOSColors.systemYellow,
-              () => Navigator.push(
+              const SizedBox(height: 16),
+              _buildMenuCard(
                 context,
-                CupertinoPageRoute(
-                  builder: (context) => const AchievementsScreen(),
-                ),
+                'Settings',
+                'Configure sound and haptics',
+                CupertinoIcons.settings_solid,
+                IOSColors.systemGray,
+                () async {
+                  final result = await Navigator.push(
+                    context,
+                    CupertinoPageRoute(
+                      builder: (context) => const SettingsScreen(),
+                    ),
+                  );
+                  if (result == true && context.mounted) {
+                    Navigator.pop(context, result);
+                  }
+                },
               ),
-            ),
-            const SizedBox(height: 16),
-            _buildMenuCard(
-              context,
-              'Settings',
-              'Configure sound and haptics',
-              CupertinoIcons.settings_solid,
-              IOSColors.systemGray,
-              () => Navigator.push(
-                context,
-                CupertinoPageRoute(
-                  builder: (context) => const SettingsScreen(),
-                ),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -144,17 +149,7 @@ class MainMenuScreen extends StatelessWidget {
       onPressed: onTap,
       child: Container(
         padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
+        decoration: AppDecorations.card(),
         child: Row(
           children: [
             Container(
@@ -162,7 +157,7 @@ class MainMenuScreen extends StatelessWidget {
               height: 56,
               decoration: BoxDecoration(
                 color: color.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(14),
               ),
               child: Icon(
                 icon,
@@ -177,19 +172,12 @@ class MainMenuScreen extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: CupertinoColors.black,
-                    ),
+                    style: AppTextStyles.title,
                   ),
                   const SizedBox(height: 4),
                   Text(
                     subtitle,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: IOSColors.systemGray,
-                    ),
+                    style: AppTextStyles.body.copyWith(color: IOSColors.systemGray),
                   ),
                 ],
               ),
